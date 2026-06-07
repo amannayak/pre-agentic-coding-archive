@@ -1,0 +1,69 @@
+---
+title: "lab_report_knapsack"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{lab_report_knapsack}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(knapsackProblem)
+```
+
+```{r}
+suppressWarnings(RNGversion("3.5.9"))
+set.seed(42)
+n <- 2000
+knapsack_objects <- data.frame(
+  w=sample(1:4000, size = n, replace = TRUE),
+  v=runif(n = n, 0, 10000)
+  )
+```
+
+## **What is Package : KnapsackProblem Contains**
+This package contain three functions functions to solve Knapsack Problem (refred as KP below): 
+**brute_force_knapsack
+**dynamic_knapsack
+**greedy_knapsack
+
+## **Function brute_force_knapsack()**
+This method is solving knapsack problem in serial method but there is an optional parameter parallel (parallel = FALSE) which is by default FALSE and if you pass the value TRUE to this parameter it calculations the combiinations in parallel manner and performance increases exponentially.
+
+<p> The Algorithm can be executed as shown below. The time taken for 16 objects are shown below.
+
+```{r Brute Force Algoritm}
+brute_force_knapsack(x = knapsack_objects[1:16,], W = 3500)
+profvis::profvis({brute_force_knapsack(x = knapsack_objects[1:16,], W = 3500)})
+microbenchmark::microbenchmark(brute_force_knapsack(x = knapsack_objects[1:16,], W = 3500))
+```
+
+<p> After profiling, it can be seen that it is taking too much time in serial operation, so implemented parallel Brute force and almost 80% increment can be seen. 
+
+```{r Parallel Brute Force Algoritm}
+brute_force_knapsack(x = knapsack_objects[1:20,], W = 3500, parallel = TRUE)
+profvis::profvis({brute_force_knapsack(x = knapsack_objects[1:20,], W = 3500, parallel = TRUE)})
+microbenchmark::microbenchmark(brute_force_knapsack(x = knapsack_objects[1:20,], W = 3500, parallel = TRUE))
+```
+
+## **Function Dynamic Knapsack: dynamic_knapsack**
+<p> The Algorithm can be executed as shown below. The time taken for 500 objects.
+```{r dynamic Knapsack}
+dynamic_knapsack(x = knapsack_objects[1:500,], W = 3500)
+profvis::profvis({dynamic_knapsack(x = knapsack_objects[1:500,], W = 3500)})
+microbenchmark::microbenchmark(dynamic_knapsack(x = knapsack_objects[1:500,],W = 3500))
+```
+
+## **Function Greedy Knapsack: greedy_knapsack**
+<p> The Algorithm can be executed as shown below. The time taken for 10000 objects.
+```{r Greedy Knapsack}
+greedy_knapsack(x = knapsack_objects[1:10000,], W = 3500)
+microbenchmark::microbenchmark(greedy_knapsack(x = knapsack_objects[1:10000,],W = 3500))
+```

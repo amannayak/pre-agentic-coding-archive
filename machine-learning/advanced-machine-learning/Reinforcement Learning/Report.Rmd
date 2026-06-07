@@ -1,0 +1,754 @@
+---
+title: "Report Reinforcement Learning"
+author: "Aman Kumar Nayak"
+date: "10/7/2020"
+output:
+  pdf_document:
+    latex_engine: xelatex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+***Question 1***
+
+***Q-Learning***
+
+Q-Learning is an off-policy Reinforcement Learning algorithm. It uses table to store Q-Values of all possible state-action possible pairs. Table is updated using Bellman equation while action selection can be done using $\epsilon - greedy$ policy or some other policy.
+
+We will work with a grid world environment consisting of H × W tiles laid out in a 2-dimensional grid. An agent acts by moving up, down, left or right in the grid-world. This corresponds to the following Markov
+decision process:
+
+State Space : S = {(x,y|x $\epsilon$ {1 , .... , H} , y $\epsilon$ {1,.....,H}}
+Action Space : A = {up,down,left,right}
+
+Additionally, we assume state space to be fully observable. The reward function is a deterministic function of the state and does not depend on the actions taken by the agent. We assume the agent gets the reward as soon as it moves to a state. The transition model is defined by the agent moving in the direction chosen with probability (1−$\beta$). The agent might also slip and end up moving in the direction to the left or right of its chosen action, each with probability $\beta$$/2. The transition model is unknown to the agent, forcing us to resort to model-free solutions. The environment is episodic and all states with a non-zero reward are terminal. Throughout this lab we use integer representations of the different actions: Up=1, right=2, down=3 and left=4
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+library(ggplot2)
+
+# If you do not see four arrows in line 16, then do the following:
+# File/Reopen with Encoding/UTF-8
+
+#arrows <- c("↑", "→", "↓", "←")
+arrows <- c("^", ">", "v", "<")
+action_deltas <- list(c(1,0), # up
+                      c(0,1), # right
+                      c(-1,0), # down
+                      c(0,-1)) # left
+
+vis_environment <- function(iterations=0, epsilon = 0.5, alpha = 0.1, gamma = 0.95, beta = 0){
+  
+  # Visualize an environment with rewards. 
+  # Q-values for all actions are displayed on the edges of each tile.
+  # The (greedy) policy for each state is also displayed.
+  # 
+  # Args:
+  #   iterations, epsilon, alpha, gamma, beta (optional): for the figure title.
+  #   reward_map (global variable): a HxW array containing the reward given at each state.
+  #   q_table (global variable): a HxWx4 array containing Q-values for each state-action pair.
+  #   H, W (global variables): environment dimensions.
+  
+  df <- expand.grid(x=1:H,y=1:W)
+  foo <- mapply(function(x,y) ifelse(reward_map[x,y] == 0,q_table[x,y,1],NA),df$x,df$y)
+  df$val1 <- as.vector(round(foo, 2))
+  foo <- mapply(function(x,y) ifelse(reward_map[x,y] == 0,q_table[x,y,2],NA),df$x,df$y)
+  df$val2 <- as.vector(round(foo, 2))
+  foo <- mapply(function(x,y) ifelse(reward_map[x,y] == 0,q_table[x,y,3],NA),df$x,df$y)
+  df$val3 <- as.vector(round(foo, 2))
+  foo <- mapply(function(x,y) ifelse(reward_map[x,y] == 0,q_table[x,y,4],NA),df$x,df$y)
+  df$val4 <- as.vector(round(foo, 2))
+  foo <- mapply(function(x,y) 
+    ifelse(reward_map[x,y] == 0,arrows[GreedyPolicy(x,y)],reward_map[x,y]),df$x,df$y)
+  df$val5 <- as.vector(foo)
+  foo <- mapply(function(x,y) ifelse(reward_map[x,y] == 0,max(q_table[x,y,]),
+                                     ifelse(reward_map[x,y]<0,NA,reward_map[x,y])),df$x,df$y)
+  df$val6 <- as.vector(foo)
+  
+  print(ggplot(df,aes(x = y,y = x)) +
+          scale_fill_gradient(low = "white", high = "green", na.value = "red", name = "") +
+          geom_tile(aes(fill=val6)) +
+          geom_text(aes(label = val1),size = 4,nudge_y = .35,na.rm = TRUE) +
+          geom_text(aes(label = val2),size = 4,nudge_x = .35,na.rm = TRUE) +
+          geom_text(aes(label = val3),size = 4,nudge_y = -.35,na.rm = TRUE) +
+          geom_text(aes(label = val4),size = 4,nudge_x = -.35,na.rm = TRUE) +
+          geom_text(aes(label = val5),size = 10) +
+          geom_tile(fill = 'transparent', colour = 'black') + 
+          ggtitle(paste("Q-table after ",iterations," iterations\n",
+                        "(epsilon = ",epsilon,", alpha = ",alpha,"gamma = ",gamma,", beta = ",beta,")")) +
+          theme(plot.title = element_text(hjust = 0.5)) +
+          scale_x_continuous(breaks = c(1:W),labels = c(1:W)) +
+          scale_y_continuous(breaks = c(1:H),labels = c(1:H)))
+  
+}
+
+GreedyPolicy <- function(x, y){
+  
+  # Get a greedy action for state (x,y) from q_table.
+  #
+  # Args:
+  #   x, y: state coordinates.
+  #   q_table (global variable): a HxWx4 array containing Q-values for each state-action pair.
+  # 
+  # Returns:
+  #   An action, i.e. integer in {1,2,3,4}.
+  Rewards = q_table[x,y,]
+  maxRewardIndx = which(Rewards == max(Rewards))
+  #randomly selecting max value and setting it as action
+  
+  if (length(maxRewardIndx) == 1){
+    InitSelected = maxRewardIndx
+  }else{
+  InitSelected = sample(maxRewardIndx , size = 1)
+  }
+  
+  return(InitSelected)
+  # Your code here.
+  
+}#GreedyPolicy
+
+EpsilonGreedyPolicy <- function(x, y, epsilon){
+  
+  # Get an epsilon-greedy action for state (x,y) from q_table.
+  #
+  # Args:
+  #   x, y: state coordinates.
+  #   epsilon: probability of acting randomly.
+  # 
+  # Returns:
+  #   An action, i.e. integer in {1,2,3,4}.
+  
+  # Your code here.
+  Rewards = q_table[x,y,]
+  maxRewardIndx = which(Rewards == max(Rewards))
+  
+  #randomly selecting max value and setting it as action
+  if (length(maxRewardIndx) == 1){
+    InitSelected = maxRewardIndx
+  }else{
+  InitSelected = sample(maxRewardIndx , size = 1)
+  }
+  #unif
+  p = runif(1)
+  if(p < epsilon)
+    {
+      return(sample(c(1,2,3,4) , size = 1)) #e
+  }else{
+      return(InitSelected) #1-e
+    }
+}#EpsilonGreedyPolicy
+
+
+transition_model <- function(x, y, action, beta){
+  
+  # Computes the new state after given action is taken. The agent will follow the action 
+  # with probability (1-beta) and slip to the right or left with probability beta/2 each.
+  # 
+  # Args:
+  #   x, y: state coordinates.
+  #   action: which action the agent takes (in {1,2,3,4}).
+  #   beta: probability of the agent slipping to the side when trying to move.
+  #   H, W (global variables): environment dimensions.
+  # 
+  # Returns:
+  #   The new state after the action has been taken.
+  
+  delta <- sample(-1:1, size = 1, prob = c(0.5*beta,1-beta,0.5*beta))
+  final_action <- ((action + delta + 3) %% 4) + 1
+  foo <- c(x,y) + unlist(action_deltas[final_action])
+  foo <- pmax(c(1,1),pmin(foo,c(H,W)))
+  
+  return (foo)
+}
+
+q_learning <- function(start_state, epsilon = 0.5, alpha = 0.1, gamma = 0.95, 
+                       beta = 0){
+  
+  # Perform one episode of Q-learning. The agent should move around in the 
+  # environment using the given transition model and update the Q-table.
+  # The episode ends when the agent reaches a terminal state.
+  # 
+  # Args:
+  #   start_state: array with two entries, describing the starting position of the agent.
+  #   epsilon (optional): probability of acting greedily.
+  #   alpha (optional): learning rate.
+  #   gamma (optional): discount factor.
+  #   beta (optional): slipping factor.
+  #   reward_map (global variable): a HxW array containing the reward given at each state.
+  #   q_table (global variable): a HxWx4 array containing Q-values for each state-action pair.
+  # 
+  # Returns:
+  #   reward: reward received in the episode.
+  #   correction: sum of the temporal difference correction terms over the episode.
+  #   q_table (global variable): Recall that R passes arguments by value. So, q_table being
+  #   a global variable can be modified with the superassigment operator <<-.
+  
+  # Your code here.
+  episode_correction = 0
+  
+  repeat{
+    # Follow policy, execute action, get reward.
+    x = start_state[1]
+    y = start_state[2]
+    A = EpsilonGreedyPolicy(x,y,epsilon)
+    #a = GreedyPolicy(x,y)
+    #calculate new state
+    TransState = transition_model(x,y,A,beta)
+    
+    reward = reward_map[TransState[1],TransState[2]]
+    
+    #NewCorrection = alpha * (reward + gamma*(q_table[TransState[1],TransState[2],a]) - q_table[x,y,A])
+    NewCorrection = reward + gamma* max(q_table[TransState[1],TransState[2],]) - q_table[x,y,A]
+    episode_correction = episode_correction + NewCorrection
+    
+    # Q-table update.
+    #q_table[x,y,A] <<- q_table[x,y,A] + NewCorrection
+    q_table[x,y,A] <<- q_table[x,y,A] + alpha * NewCorrection
+    
+    start_state = TransState
+    
+    if(reward!=0)
+      # End episode.
+      return (c(reward,episode_correction))
+  }
+  
+}
+
+```
+
+# Environment A
+
+For our first environment, we will use H = 5 and W = 7. This environment includes a reward of 10 in state (3,6) and a reward of -1 in states (2,3), (3,3) and (4,3). We specify the rewards using a reward map in the form of a matrix with one entry for each state. States with no reward will simply have a matrix entry of 0. The agent starts each episode in the state (3,1). The function vis_environment is used to visualize
+the environment and learned action values and policy. 
+
+Q-Learning is off-policy, it evaluates one policy (target policy) while observing behavior policy. Finding optimal action value function $Q_*$ under arbitrary behavior policy is achieved by policy iteration. Q converges to optimal action value function $Q_*(S,A)$ and its greedy converges to optimal policy under appropriate choice of learning rate ($\alpha$) over time.         
+
+$$
+Q_*(S, A) = Q(S,A) + \alpha(R + \gamma (max_a Q(S',a)) -Q(S,A))
+$$
+
+Here : 
+
+S : is current state
+A : Action chosen by $\epsilon$-Greedy policy
+S': Transition state based on current state and chosen action A 
+R : is Reward for moving to transition state S'
+a : Action chosen by Greedy Policy
+$\alpha$ : Learning Rate
+$\gamma$ : Discount factor, ranges between (0 , 1) which control importance of future rewards in comparison to current one. 
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+H <- 5
+W <- 7
+
+reward_map <- matrix(0, nrow = H, ncol = W)
+reward_map[3,6] <- 10
+reward_map[2:4,3] <- -1
+
+q_table <- array(0,dim = c(H,W,4))
+
+vis_environment()
+
+for(i in 1:10000){
+  foo <- q_learning(start_state = c(3,1))
+
+  if(any(i==c(10,100,1000,10000)))
+    vis_environment(i)
+}
+
+#test run for additional 1000 run 
+
+# for(i in 1:100000){
+#   foo <- q_learning(start_state = c(3,1))
+#   
+#   if(any(i==c(10,100,1000,10000 , 100000)))
+#     vis_environment(i)
+# }
+
+
+```
+
+
+**What has the agent learned after the first 10 episodes ?**
+
+From the above Q-Table named "Q-Table after 10 Iterations" with ten iterations, we have a small number of episodes and, the agent is not able to learn optimal paths towards maximum reward location as it is in the exploring stage, so there is no significant learning in terms of optimal path but agent started to learn to avoid negative reward available in grid 2,3 , 3,3 and 3,4.
+
+**Is the final greedy policy (after 10000 episodes) optimal? Why / Why not ?**
+
+From plot "Q-Table after 10000 Iterations", the model has learned multiple paths towards the maximum reward position state in 10000 episodes, and thus when agent start from grid position of 3,1, it will converge to the maximum reward position. 
+
+The final greedy policy is optimal in terms of reaching to highest reward grid position when we have a high number of episodes in the learning phase.
+
+**Does the agent learn that there are multiple paths to get to the positive reward ? If not, what could be done to make the agent learn this ?**
+
+In "Q-Table after 10000 Iterations", looking at maximum rewards for each grid, it is observed that the agent did learn multiple paths to reach to maximum reward position in the grid based on where it started i.e. 3,1. 
+
+Now if we want to explore more paths during during learning, we can set $\epsilon$ parameter (Exploration probability) with much more higher value. It is explained below in more details.  
+
+
+# Environment B
+
+**Investigate how the $\epsilon$ and $\gamma$ parameters affect the learned policy by running 30000 episodes of Q-learning with $\epsilon$ = 0.1, 0.5, $\gamma$ = 0.5, 0.75, 0.95, $\beta$ = 0 and $\alpha$ = 0.1**
+
+*Exploration vs Exploitation*
+
+*Exploration* allows an agent to improve its current knowledge about each action, hopefully leading to long-term benefit. Improving the accuracy of the estimated action-values, enables an agent to make more informed decisions in the future.
+
+*Exploitation* on the other hand, chooses the greedy action to get the most reward by exploiting the agent’s current action-value estimates. But by being greedy with respect to action-value estimates, may not actually get the most reward and lead to sub-optimal behavior.
+
+When an agent explores, it gets more accurate estimates of action-values. And when it exploits, it might get more reward. It cannot, however, choose to do both simultaneously.
+
+*Use of $\epsilon$ parameter:* 
+
+$\epsilon$-Greedy is a simple method to balance exploration and exploitation by choosing between exploration and exploitation randomly.
+
+Now with probability of 1-$\epsilon$ we decide to exploit and with probability of $\epsilon$ we decide to explore. 
+
+
+*Use of $\gamma$ (discount factor) parameter:*
+
+The discount factor essentially determines how much the reinforcement learning agents cares about rewards in the distant future relative to those in the immediate future. If $\gamma$ = 0, the agent will be completely shortsighted and only learn about actions that produce an immediate reward. If $\gamma$ = 1, the agent will evaluate each of its actions based on the sum total of all of its future rewards.
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+# Environment B (the effect of epsilon and gamma)
+
+cat("Epsilon set as 0.5")
+
+H <- 7
+W <- 8
+
+reward_map <- matrix(0, nrow = H, ncol = W)
+reward_map[1,] <- -1
+reward_map[7,] <- -1
+reward_map[4,5] <- 5
+reward_map[4,8] <- 10
+
+q_table <- array(0,dim = c(H,W,4))
+
+vis_environment()
+
+MovingAverage <- function(x, n){
+  
+  cx <- c(0,cumsum(x))
+  rsum <- (cx[(n+1):length(cx)] - cx[1:(length(cx) - n)]) / n
+  
+  return (rsum)
+}
+
+for(j in c(0.5,0.75,0.95)){
+  q_table <- array(0,dim = c(H,W,4))
+  reward <- NULL
+  correction <- NULL
+  
+  for(i in 1:30000){
+    foo <- q_learning(gamma = j, start_state = c(4,1))
+    reward <- c(reward,foo[1])
+    correction <- c(correction,foo[2])
+  }
+  
+  vis_environment(i, gamma = j)
+  plot(MovingAverage(reward,100),type = "l")
+  plot(MovingAverage(correction,100),type = "l")
+}
+
+
+
+```
+
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+cat("Epsilon set as 0.1")
+
+for(j in c(0.5,0.75,0.95)){
+  q_table <- array(0,dim = c(H,W,4))
+  reward <- NULL
+  correction <- NULL
+  
+  for(i in 1:30000){
+    foo <- q_learning(epsilon = 0.1, gamma = j, start_state = c(4,1))
+    reward <- c(reward,foo[1])
+    correction <- c(correction,foo[2])
+  }
+  
+  vis_environment(i, epsilon = 0.1, gamma = j)
+  plot(MovingAverage(reward,100),type = "l")
+  plot(MovingAverage(correction,100),type = "l")
+}
+
+
+
+```
+
+*Epsilon Impact*
+
+When $\epsilon$ = 0.5, we give equal probability to exploit and explore thus it can be seen that we can find multiple directions towards high reward stages while when we set $\epsilon$ = 0.1, the system is more exploiting in nature and select path with only high rewards and thus we are not able to find multiple directions towards high reward stages which can be seen by less number of green grids when $\epsilon$ = 0.1. 
+
+*Gamma Impact*
+
+With different values of $\gamma$ (discount factor) it can be seen that correction is low for $\gamma$ = 0.5 while since it is looking for a high reward in near future only and when we increase this to $\gamma$ = 0.75 we can see the higher variance in correction (when $\epsilon$ is 0.5) as now we are more interested in long term rewards than a short term one and when we increase it $\gamma$ = 0.95, we are giving very very high value to future rewards and thus the system is more tuned for future rewards. Which can be seen in case of Gamma = 0.95 and Epsilon = .5 system is ignoring Reward of 5 at grid position of 4,5 as system is looking for higher reward available at grid position of 4,8.
+
+*Combined Impact of Epsilon and Gamma*
+
+When we have $\epsilon$ as 0.5 and we keep on increasing $\gamma$, since model have balance exploration and exploitation and with every increase in $\gamma$ we can see that system is giving more and more value to future rewards thus we get large number of episodes converging at max reward in grid which is 10. 
+
+But when we have $\epsilon$ as 0.1 and even when we increase $\gamma$, system being exploiting (1-$\epsilon$ is high ) and not exploring more we can see higher number of episodes converging at reward grid 5 which is not global optimal reward.    
+
+# Environment C (the effect of beta)
+ 
+**Your task is to investigate how the $\beta$ parameter affects the learned policy by running 10000 episodes of Q-learning with $\beta$ = 0, 0.2, 0.4, 0.66, $\epsilon$ = 0.5, $\gamma$ = 0.6 and $\alpha$ = 0.1**
+
+
+Since the transition model is defined by the agent moving in the direction chosen with probability (1−$\beta$). The agent might also slip and end up moving in the direction to the left or right of its chosen action, each with probability $\beta$/2
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+H <- 3
+W <- 6
+
+reward_map <- matrix(0, nrow = H, ncol = W)
+reward_map[1,2:5] <- -1
+reward_map[1,6] <- 10
+
+q_table <- array(0,dim = c(H,W,4))
+
+vis_environment()
+
+
+for(j in c(0,0.2,0.4,0.66)){
+  q_table <- array(0,dim = c(H,W,4))
+  
+  for(i in 1:10000)
+    foo <- q_learning(gamma = 0.6, beta = j, start_state = c(1,1))
+  
+  vis_environment(i, gamma = 0.6, beta = j)
+}
+```
+
+As we are increasing $\beta$, we can see that model will not move in chosen direction and thus its movement is getting more and more random and with $\beta$ at 0.6 (as movement in chosen direction have probability of (1-$\beta$)), it will mostly move towards right or left of chosen direction thus it might get harder for agent to reach optimal state in grid.
+
+Thus $\beta$ value can be used to cover uncertainty about action taken by agent in any given environment.
+
+To elaborate, since $\beta$ is the probability of slipping, when we increase it we are increasing the uncertainty of movement in the optimal direction. When $\beta$ is increased from 0 to o.66 we are most likely going to move to the left or right of the optimal direction (as the probability of moving towards optimal direction is 1 − $\beta$ = 0.36 now).
+
+It can be seen that with a $\beta$ value of 0.66, agent instead of trying to increase its rewards, tries to reduce the gain of additional negative reward.
+
+This could be understood from the example of a finance point of view. In the general case, we try to maximize reward (gain) for investment but when uncertainty because of events like Covid-19 is so high, the system is trying to manage net value such that its focus is now to avoid losses(negative reward). This can be understood by the robot’s decision to collide with the wall in grid position 1,1 instead of taking top or bottom direction as there was a possibility of slipping to a negative -1 reward state at 1,2.
+
+
+***Question 2***
+
+***Reinforcement Learning***
+
+*Task Setup*
+
+We will work with a 4 × 4 grid. We want the agent to learn to navigate to a random goal position in the grid. The agent will start in a random position and it will be told the goal position. The agent receives a reward of 5 when it reaches the goal. Since the goal position can be any position, we need a way to tell the agent where the goal is. Since our agent does not have any memory mechanism, we provide the goal coordinates as part of the state at every time step, i.e. a state consists now of four coordinates: Two for the position of the agent, and two for the goal position. The actions of the agent can however only impact its own position, i.e. the actions do not modify the goal position. Note that the agent initially does not know that the last two coordinates of a state indicate the position with maximal reward, i.e. the goal position. It has to learn it. It also has to learn a policy to reach the goal position from the
+initial position. Moreover, the policy has to depend on the goal position, because it is chosen at random in each episode. Since we only have a single non-zero reward, we do not specify a reward map. Instead, the goal coordinates are passed to the functions that need to access the reward function.
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+# install.packages("keras")
+#install.packages("tensorflow")
+library(tensorflow)
+library(keras)
+
+# install.packages("ggplot2")
+# install.packages("vctrs")
+library(ggplot2)
+
+# If you do not see four arrows in line 19, then do the following:
+# File/Reopen with Encoding/UTF-8
+
+#arrows <- c("↑", "→", "↓", "←")
+arrows <- c("^", ">", "v", "<")
+action_deltas <- list(c(1,0), # up
+                      c(0,1), # right
+                      c(-1,0), # down
+                      c(0,-1)) # left
+
+vis_prob <- function(goal, episodes = 0){
+  
+  # Visualize an environment with rewards. 
+  # Probabilities for all actions are displayed on the edges of each tile.
+  # The (greedy) policy for each state is also displayed.
+  # 
+  # Args:
+  #   goal: goal coordinates, array with 2 entries.
+  #   episodes, epsilon, alpha, gamma, beta (optional): for the figure title.
+  #   H, W (global variables): environment dimensions.
+  
+  df <- expand.grid(x=1:H,y=1:W)
+  dist <- array(data = NA, dim = c(H,W,4))
+  class <- array(data = NA, dim = c(H,W))
+  for(i in 1:H)
+    for(j in 1:W){
+      dist[i,j,] <- DeepPolicy_dist(i,j,goal[1],goal[2])
+      foo <- which(dist[i,j,]==max(dist[i,j,]))
+      class[i,j] <- ifelse(length(foo)>1,sample(foo, size = 1),foo)
+    }
+  
+  foo <- mapply(function(x,y) ifelse(all(c(x,y) == goal),NA,dist[x,y,1]),df$x,df$y)
+  df$val1 <- as.vector(round(foo, 2))
+  foo <- mapply(function(x,y) ifelse(all(c(x,y) == goal),NA,dist[x,y,2]),df$x,df$y)
+  df$val2 <- as.vector(round(foo, 2))
+  foo <- mapply(function(x,y) ifelse(all(c(x,y) == goal),NA,dist[x,y,3]),df$x,df$y)
+  df$val3 <- as.vector(round(foo, 2))
+  foo <- mapply(function(x,y) ifelse(all(c(x,y) == goal),NA,dist[x,y,4]),df$x,df$y)
+  df$val4 <- as.vector(round(foo, 2))
+  foo <- mapply(function(x,y) ifelse(all(c(x,y) == goal),NA,class[x,y]),df$x,df$y)
+  df$val5 <- as.vector(arrows[foo])
+  foo <- mapply(function(x,y) ifelse(all(c(x,y) == goal),"Goal",NA),df$x,df$y)
+  df$val6 <- as.vector(foo)
+  
+  print(ggplot(df,aes(x = y,y = x)) +
+          geom_tile(fill = 'white', colour = 'black') +
+          scale_fill_manual(values = c('green')) +
+          geom_tile(aes(fill=val6), show.legend = FALSE, colour = 'black') +
+          geom_text(aes(label = val1),size = 4,nudge_y = .35,na.rm = TRUE) +
+          geom_text(aes(label = val2),size = 4,nudge_x = .35,na.rm = TRUE) +
+          geom_text(aes(label = val3),size = 4,nudge_y = -.35,na.rm = TRUE) +
+          geom_text(aes(label = val4),size = 4,nudge_x = -.35,na.rm = TRUE) +
+          geom_text(aes(label = val5),size = 10,na.rm = TRUE) +
+          geom_text(aes(label = val6),size = 10,na.rm = TRUE) +
+          ggtitle(paste("Action probabilities after ",episodes," episodes")) +
+          theme(plot.title = element_text(hjust = 0.5)) +
+          scale_x_continuous(breaks = c(1:W),labels = c(1:W)) +
+          scale_y_continuous(breaks = c(1:H),labels = c(1:H)))
+  
+}
+
+transition_model <- function(x, y, action, beta){
+  
+  # Computes the new state after given action is taken. The agent will follow the action 
+  # with probability (1-beta) and slip to the right or left with probability beta/2 each.
+  # 
+  # Args:
+  #   x, y: state coordinates.
+  #   action: which action the agent takes (in {1,2,3,4}).
+  #   beta: probability of the agent slipping to the side when trying to move.
+  #   H, W (global variables): environment dimensions.
+  # 
+  # Returns:
+  #   The new state after the action has been taken.
+  
+  delta <- sample(-1:1, size = 1, prob = c(0.5*beta,1-beta,0.5*beta))
+  final_action <- ((action + delta + 3) %% 4) + 1
+  foo <- c(x,y) + unlist(action_deltas[final_action])
+  foo <- pmax(c(1,1),pmin(foo,c(H,W)))
+  
+  return (foo)
+}
+
+DeepPolicy_dist <- function(x, y, goal_x, goal_y){
+  
+  # Get distribution over actions for state (x,y) and goal (goal_x,goal_y) from the deep policy.
+  #
+  # Args:
+  #   x, y: state coordinates.
+  #   goal_x, goal_y: goal coordinates.
+  #   model (global variable): NN encoding the policy.
+  # 
+  # Returns:
+  #   A distribution over actions.
+  
+  foo <- matrix(data = c(x,y,goal_x,goal_y), nrow = 1)
+  
+  # return (predict_proba(model, x = foo))
+  return (predict_on_batch(model, x = foo)) # Faster.
+  
+}
+
+DeepPolicy <- function(x, y, goal_x, goal_y){
+  
+  # Get an action for state (x,y) and goal (goal_x,goal_y) from the deep policy.
+  #
+  # Args:
+  #   x, y: state coordinates.
+  #   goal_x, goal_y: goal coordinates.
+  #   model (global variable): NN encoding the policy.
+  # 
+  # Returns:
+  #   An action, i.e. integer in {1,2,3,4}.
+  
+  foo <- DeepPolicy_dist(x,y,goal_x,goal_y)
+  
+  return (sample(1:4, size = 1, prob = foo))
+  
+}
+
+DeepPolicy_train <- function(states, actions, goal, gamma){
+  
+  # Train the policy network on a rolled out trajectory.
+  # 
+  # Args:
+  #   states: array of states visited throughout the trajectory.
+  #   actions: array of actions taken throughout the trajectory.
+  #   goal: goal coordinates, array with 2 entries.
+  #   gamma: discount factor.
+  
+  # Construct batch for training.
+  inputs <- matrix(data = states, ncol = 2, byrow = TRUE)
+  inputs <- cbind(inputs,rep(goal[1],nrow(inputs)))
+  inputs <- cbind(inputs,rep(goal[2],nrow(inputs)))
+  
+  targets <- array(data = actions, dim = nrow(inputs))
+  targets <- to_categorical(targets-1, num_classes = 4)  
+  
+  # Sample weights. Reward of 5 for reaching the goal.
+  weights <- array(data = 5*(gamma^(nrow(inputs)-1)), dim = nrow(inputs))
+  
+  # Train on batch. Note that this runs a SINGLE gradient update.
+  train_on_batch(model, x = inputs, y = targets, sample_weight = weights)
+  
+}
+
+reinforce_episode <- function(goal, gamma = 0.95, beta = 0){
+  
+  # Rolls out a trajectory in the environment until the goal is reached.
+  # Then trains the policy using the collected states, actions and rewards.
+  # 
+  # Args:
+  #   goal: goal coordinates, array with 2 entries.
+  #   gamma (optional): discount factor.
+  #   beta (optional): probability of slipping in the transition model.
+  
+  # Randomize starting position.
+  cur_pos <- goal
+  while(all(cur_pos == goal))
+    cur_pos <- c(sample(1:H, size = 1),sample(1:W, size = 1))
+  
+  states <- NULL
+  actions <- NULL
+  
+  steps <- 0 # To avoid getting stuck and/or training on unnecessarily long episodes.
+  while(steps < 20){
+    steps <- steps+1
+    
+    # Follow policy and execute action.
+    action <- DeepPolicy(cur_pos[1], cur_pos[2], goal[1], goal[2])
+    new_pos <- transition_model(cur_pos[1], cur_pos[2], action, beta)
+    
+    # Store states and actions.
+    states <- c(states,cur_pos)
+    actions <- c(actions,action)
+    cur_pos <- new_pos
+    
+    if(all(new_pos == goal)){
+      # Train network.
+      DeepPolicy_train(states,actions,goal,gamma)
+      break
+    }
+  }
+  
+}
+
+
+
+
+```
+
+
+# Environment D (training with random goal positions)
+
+**Task: In this task, we will use eight goal positions for training and, then, validate the learned policy on the remaining eight possible goal positions. The training and validation goal positions are stored in the lists train goals and val goals.** 
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+# Environment D (training with random goal positions)
+
+H <- 4
+W <- 4
+
+# Define the neural network (two hidden layers of 32 units each).
+model <- keras_model_sequential()
+model %>% 
+  layer_dense(units = 32, input_shape = c(4), activation = 'relu') %>% 
+  layer_dense(units = 32, activation = 'relu') %>% 
+  layer_dense(units = 4, activation = 'softmax')
+
+compile(model, loss = "categorical_crossentropy", optimizer = optimizer_sgd(lr=0.001))
+
+initial_weights <- get_weights(model)
+
+train_goals <- list(c(4,1), c(4,3), c(3,1), c(3,4), c(2,1), c(2,2), c(1,2), c(1,3))
+val_goals <- list(c(4,2), c(4,4), c(3,2), c(3,3), c(2,3), c(2,4), c(1,1), c(1,4))
+
+show_validation <- function(episodes){
+  
+  for(goal in val_goals)
+    vis_prob(goal, episodes)
+  
+}
+
+set_weights(model,initial_weights)
+
+show_validation(0)
+
+for(i in 1:5000){
+  if(i%%10==0) cat("episode",i,"\n")
+  goal <- sample(train_goals, size = 1)
+  reinforce_episode(unlist(goal))
+}
+
+show_validation(5000) 
+
+
+```
+
+**Has the agent learned a good policy? Why / Why not ?**
+
+It can be seen that the agent is able to learn the good policy as it had access to all grid positions (as training data) and thus it is able to generalize and learn good policy. 
+
+**Could you have used the Q-learning algorithm to solve this task ?**
+
+In Q-Learning we create a q-matrix which contain states and rewards for the state, now when we grid where the optimal location is kept on changing like for the above scenario, we cannot implement Q-Learning since the path to the optimal location will keep on changing and in order to do so, we have to train the model with different high reward positions which won't give us single generalized model. Thus applying Q-Learning for a similar problem is not the correct solution. 
+
+# Environment E (training with top row goal positions)
+
+**Task : To repeat the previous experiments but this time the goals for training are all from the top row of the grid. The validation goals are three positions from the rows below.**
+
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+# Environment E (training with top row goal positions)
+
+train_goals <- list(c(4,1), c(4,2), c(4,3), c(4,4))
+val_goals <- list(c(3,4), c(2,3), c(1,1))
+
+set_weights(model,initial_weights)
+
+show_validation(0)
+
+for(i in 1:5000){
+  if(i%%10==0) cat("episode", i,"\n")
+  goal <- sample(train_goals, size = 1)
+  reinforce_episode(unlist(goal))
+}
+
+show_validation(5000) 
+```
+
+*Has the agent learned a good policy? Why / Why not ?*
+
+Since the agent only had access to 1st row of the grid as data, the neural network was not able to learn all paths for the whole grid, so we are not able to create a generalized model because of which agent is not able to learn optimal policy.
+
+*If the results obtained for environments D and E differ, explain why*
+
+In D agent was able to generalize based on given training data as it had access to the whole grid while it lacks to do it for E as it only had access to 1st row of the grid thus better generalization was obtained in D while E we were not able to do so because of which we have obtained different results. This can be seen by the path selected in case of validation for different goal positions.
+
+
+
+
+**References**
+
+* [A Concise Introduction to Reinforcement Learning](10.13140/RG.2.2.31027.53285)
+
+*[Epsilon-Greedy Algorithm in Reinforcement Learning](https://www.geeksforgeeks.org/epsilon-greedy-algorithm-in-reinforcement-learning/)
+
+**Appendix**
+```{r, ref.label = knitr::all_labels(), echo = TRUE, eval = FALSE}
+```

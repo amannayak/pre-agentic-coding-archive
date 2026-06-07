@@ -1,0 +1,271 @@
+---
+title: "Exam 2020"
+author: "Aman Kumar Nayak"
+date: "10/26/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+#Question 1 
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+library(gRain)
+library(bnlearn)
+library(Rgraphviz)
+
+
+
+dag = bnlearn::empty.graph(nodes = c("A" , "C", "D", "Y"))
+dag = bnlearn::set.arc(dag, from = "A" , to = "Y" )
+dag = bnlearn::set.arc(dag, from = "C" , to = "A" )
+dag = bnlearn::set.arc(dag, from = "C" , to = "Y" )
+dag = bnlearn::set.arc(dag, from = "C" , to = "D" )
+
+
+bnlearn::graphviz.plot(dag, main = "Model BN" )
+
+
+```
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+# cptC = matrix(c(0.5, 0.5), ncol = 2, dimnames = list(NULL, c("0", "1")))
+# 
+# 
+# 
+# cptD = c(0.5, 0.5 , 0.5 , 0.5)
+# dim(cptD) = c(2, 2, 1)
+# dimnames(cptD) = list("D" = c("0", "1"), "C" =  c("0", "1"))
+# 
+# cptY = c(0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5)
+# dim(cptY) = c(2, 2, 2)
+# dimnames(cptY) = list("Y" = c("0", "1"), "C" =  c("0", "1"), "A" = c("0", "1"))
+# 
+# cptA = c(0.5, 0.5 , 0.5 , 0.5)
+# dim(cptA) = c(2, 2, 1)
+# dimnames(cptA) = list("A" = c("0", "1"), "C" =  c("0", "1"))
+# 
+# bnFit <- custom.fit(dag, dist = list(C=cptC , A=cptA,D =cptD , Y = cptY))
+# test = rbn(bnFit , n = 1000)
+
+```
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+c.lv = c(0,1)
+a.lv = c(0,1)
+d.lv = c(0,1)
+y.lv = c(0,1)
+
+c.prob = array(c(0.5 , 0.5), dim = 2, dimnames = list(C = c.lv))
+a.prob = array(c(0.5 , 0.5 , 0.5 , 0.5) , dim = c(2,2) , dimnames = list(A = a.lv , C = c.lv))
+d.prob = array(c(0.5 , 0.5 , 0.5 , 0.5) , dim = c(2,2) , dimnames = list(D = d.lv , C = c.lv))
+y.prob = array(c(0.5 , 0.5 , 0.5 , 0.5 , 0.5 , 0.5 , 0.5 , 0.5) , dim = c(2,2,2) ,
+               dimnames = list(Y = y.lv , A = a.lv , C = c.lv))
+
+cpt <- list(C = c.prob, A = a.prob, D = d.prob, Y = y.prob)
+```
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+bn.Fit = custom.fit(dag , cpt)
+
+monotoneInD = 0
+monotoneInC = 0
+
+indiMonoC = 0 
+indiMonoD = 0
+
+for(i in 1:1000)
+{  
+  dataRBN = rbn(bn.Fit , n = 1000)
+  modelFit = bnlearn::bn.fit(x = dag , data = dataRBN ,  method = "bayes")
+  
+  compiled_Grain = gRbase::compile(object = bnlearn::as.grain(modelFit))
+  
+  #A,C
+  Evidence_Grain = gRain::setEvidence(object = compiled_Grain , 
+                                          nodes = c("A" , "C") , 
+                                          states = c("1" , "1")  
+                                          )
+    
+  queryGrain = querygrain(object = Evidence_Grain,
+                              #object = compiled_Grain , evidence = Evidence_Grain ,
+                               nodes = "Y" , 
+                               type = "marginal" 
+                              )
+  
+  CY1 = queryGrain$Y[2]
+  
+  Evidence_Grain = gRain::setEvidence(object = compiled_Grain , 
+                                          nodes = c("A" , "C") , 
+                                          states = c("1" , "0")  
+                                          )
+    
+  queryGrain = querygrain(object = Evidence_Grain,
+                              #object = compiled_Grain , evidence = Evidence_Grain ,
+                               nodes = "Y" , 
+                               type = "marginal" 
+                              )
+  CY2 = queryGrain$Y[2]
+  
+  
+  Evidence_Grain = gRain::setEvidence(object = compiled_Grain , 
+                                          nodes = c("A" , "C") , 
+                                          states = c("0" , "1")  
+                                          )
+    
+  queryGrain = querygrain(object = Evidence_Grain,
+                              #object = compiled_Grain , evidence = Evidence_Grain ,
+                               nodes = "Y" , 
+                               type = "marginal" 
+                              )
+  
+  CY3 = queryGrain$Y[2]
+  
+  
+  Evidence_Grain = gRain::setEvidence(object = compiled_Grain , 
+                                          nodes = c("A" , "C") , 
+                                          states = c("0" , "0")  
+                                          )
+    
+  queryGrain = querygrain(object = Evidence_Grain,
+                              #object = compiled_Grain , evidence = Evidence_Grain ,
+                               nodes = "Y" , 
+                               type = "marginal" 
+                              )
+  
+  CY4 = queryGrain$Y[2]
+  
+  
+  #A,D
+  
+  Evidence_Grain = gRain::setEvidence(object = compiled_Grain , 
+                                          nodes = c("A" , "D") , 
+                                          states = c("1" , "1")  
+                                          )
+    
+  queryGrain = querygrain(object = Evidence_Grain,
+                              #object = compiled_Grain , evidence = Evidence_Grain ,
+                               nodes = "Y" , 
+                               type = "marginal" 
+                              )
+  
+  DY1 = queryGrain$Y[2]
+  
+  Evidence_Grain = gRain::setEvidence(object = compiled_Grain , 
+                                          nodes = c("A" , "D") , 
+                                          states = c("1" , "0")  
+                                          )
+    
+  queryGrain = querygrain(object = Evidence_Grain,
+                              #object = compiled_Grain , evidence = Evidence_Grain ,
+                               nodes = "Y" , 
+                               type = "marginal" 
+                              )
+  DY2 = queryGrain$Y[2]
+  
+  
+  Evidence_Grain = gRain::setEvidence(object = compiled_Grain , 
+                                          nodes = c("A" , "D") , 
+                                          states = c("0" , "1")  
+                                          )
+    
+  queryGrain = querygrain(object = Evidence_Grain,
+                              #object = compiled_Grain , evidence = Evidence_Grain ,
+                               nodes = "Y" , 
+                               type = "marginal" 
+                              )
+  
+  DY3 = queryGrain$Y[2]
+  
+  
+  Evidence_Grain = gRain::setEvidence(object = compiled_Grain , 
+                                          nodes = c("A" , "D") , 
+                                          states = c("0" , "0")  
+                                          )
+    
+  queryGrain = querygrain(object = Evidence_Grain,
+                              #object = compiled_Grain , evidence = Evidence_Grain ,
+                               nodes = "Y" , 
+                               type = "marginal" 
+                              )
+  
+  DY4 = queryGrain$Y[2]
+  
+  F1 = "No"
+  F2 = "No"
+  
+  #monotone in Y|AC
+  if(((CY1 >= CY2) & (CY3 >= CY4)) || ((CY1 <= CY2) & (CY3 <= CY4))){
+      F1 = "Yes"
+      indiMonoC = indiMonoC + 1
+    }
+  #monotone in Y|AD
+  if(((DY1 >= DY2) & (DY3 >= DY4)) || ((DY1 <= DY2) & (DY3 <= DY4)))
+    {
+      F2 = "Yes"
+      indiMonoD = indiMonoD + 1
+    }
+  
+  if(F1 == "Yes" & F2 == "No")
+    {
+      monotoneInC = monotoneInC + 1
+    }
+  if(F1 == "No" & F2 == "Yes")
+    monotoneInD = monotoneInD + 1
+  
+  # print(i)
+  # cat("F1 is :" , F1 , " F2 is :" , F2)
+}
+
+
+```
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+cat("\n")
+cat("monotone in c : " , indiMonoC)
+cat("\n")
+
+cat("\n")
+cat("monotone in D : " , indiMonoD)
+cat("\n")
+cat("\n")
+cat("Monotone in C but not in D is : " , monotoneInC)
+cat("\n")
+cat("\n")
+cat("Monotone in D but not in C is : " , monotoneInD)
+cat("\n")
+```
+
+
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+
+```
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+
+```
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+
+```
+
+**Appendix**
+```{r, ref.label = knitr::all_labels(), echo = TRUE, eval = FALSE}
+```

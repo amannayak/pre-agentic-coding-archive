@@ -1,0 +1,352 @@
+---
+title: "Exam 19-10-2017"
+author: "Aman Kumar Nayak"
+date: "10/22/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Question 1
+
+*1,1*
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+library(bnlearn)
+library(gRain)
+library(Rgraphviz)
+library(gRbase)
+
+```
+
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+#load data
+data("asia")
+set.seed(123)
+#learn network from data
+#initiate = bnlearn::empty.graph(nodes = c("D" , "T", "L", "B", "A", "S", "X", "E"))
+bn.hc = bnlearn::hc(asia,restart=10,score="bde",iss=10)
+bnlearn::graphviz.plot(bn.hc , main = "Learned Network")
+
+
+```
+For obtained structure we can say that S is independent of T given A. Calculating conditional probabilites for the network
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+model.Fit = bn.fit(x = bn.hc , data = asia)
+
+model.compile = gRbase::compile(object = bnlearn::as.grain(model.Fit))
+
+
+probFn = function(compiled_Grain,states , nodesName , predNode){
+  
+  probabilityMatrix = matrix(NA , nrow = nrow(stateMat) , ncol = 2)
+  
+  colnames(probabilityMatrix) = c("no" , "Yes")
+  
+  for(i in 1:nrow(states))
+  {  
+    Evidence_Grain = gRain::setEvidence(object = compiled_Grain , 
+                                          nodes = nodesName , 
+                                          states = states[i,]  
+                                          )
+    
+    queryGrain = querygrain(object = Evidence_Grain,
+                                #object = compiled_Grain , evidence = Evidence_Grain ,
+                                 nodes = predNode , 
+                                 type = "marginal" 
+                                )
+    probabilityMatrix[i,] = as.vector(unname(unlist(queryGrain)))
+  }
+  return(probabilityMatrix)
+  
+  
+  }#probFn
+
+stateMat = matrix(c("yes","yes","yes" ,
+                    "yes","yes","no", 
+                    "yes","no","yes",
+                    "yes","no","no",
+                    "no","yes","yes",
+                    "no","yes","no",
+                    "no","no","yes",
+                    "no","no","no") , nrow = 8 , byrow = TRUE)
+
+nodesName = c("S" , "T" , "E")
+
+prob = probFn(compiled_Grain = model.compile , states = stateMat, 
+            nodesName = nodesName , predNode = "B")
+
+prob
+
+
+```
+
+Looking at above probability for B as Yes / No does not change for values of E as it only changes for S and T values which can be seen in terms that obtain probability for B is same when S and T is same (firsts two node values) regardless of values of E.
+
+
+*1,2*
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+set.seed(123)
+ss = 50000
+x = random.graph(c("A","B","C","D","E"),num=ss,method="melancon",every=50,burn.in=10000)
+
+y = unique(x)
+z = lapply(y, cpdag)
+
+cnt = 0 
+
+for(i in 1:length(y)){
+  
+  if(all.equal(y[i] , z[i]) == TRUE){
+    cnt = cnt + 1
+  }
+}
+
+print(cnt)
+```
+
+#Question 2
+
+*2,1*
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+State = 1:100
+Symbols = 1:2 # Use 1 > Gate 
+n = length(State)
+
+#transition probability
+transProb = matrix(rep(0 , n*n) , nrow = n , ncol = n)
+
+for(i in 1:99){
+  transProb[i,i] = 0.1
+  transProb[i,i+1] = 0.9
+}
+#for state 100
+transProb[100,100] = 0.1
+transProb[100,1] = 0.9
+
+
+#emission probability 
+emissionProb = matrix(rep(0 , n * length(Symbols)) , nrow = n , ncol = length(Symbols))
+
+for(i in 1:n){
+  if(i %in% c(10,11,12,20,21,22,30,31,32))
+    {
+      emissionProb[i,1] = 0.9
+      emissionProb[i,2] = 0.1
+    }else{
+      #as sensor is able to correctly predict robot in front of door(with 90%)prob
+      #so will to able to predict when it is not there in front of door
+      emissionProb[i,1] = 0.1
+      emissionProb[i,2] = 0.9
+    }
+}
+```
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+library(HMM)
+#creating HMM 
+hmm = HMM::initHMM(State , Symbols , transProbs = transProb , emissionProbs = emissionProb)
+
+#simulate data 
+# nSim = 500
+# SimHMM = HMM::simHMM(hmm, nSim)
+
+```
+
+*2,2*
+
+Now we are expected to select sequence of observation for robot such that we have a segment where robot is more likeli to be in when compared with rest of the segment. 
+
+Now we know that robot can be in any of the segments such that if it crosses door 10 or 20 after 8 segments it would in front of segment 20 or 30 respectively but if it crosses segment 30 it would be away from any door for long time. 
+
+So considering above, creating a sequence of observation for robot. 
+
+Now for our case, 1 is refer to presence of gate and 2 refers to it is not in front of gate. 
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+#assuming we are in front of gate 3
+obs = c(1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2)
+filterdProb = exp(HMM::forward(hmm , obs))
+pt = prop.table(filterdProb,  margin  =  2)
+
+which.maxima<-function(x)
+{
+  return(which(x==max(x)))
+}
+
+MaxApply = apply(pt, 2, which.maxima)
+
+
+
+```
+
+Now for given states, below observations are more likely
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+MaxApply
+```
+
+
+
+#Question 3 
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+library(kernlab)
+library(mvtnorm)
+
+# From KernelCode.R: 
+# Squared exponential, k
+k <- function(sigmaf = 1, ell = 1)  
+{   
+  rval <- function(x, y = NULL) 
+  {       
+    r = sqrt(crossprod(x-y))       
+    return(sigmaf^2*exp(-r^2/(2*ell^2)))     
+  }   
+  class(rval) <- "kernel"   
+  return(rval) 
+}  
+
+
+# Simulating from the prior for ell = 0.2
+kernel02 <- k(sigmaf = 1, ell = 0.2) # This constructs the covariance function
+xGrid = seq(-1,1,by=0.1) 
+K = kernelMatrix(kernel = kernel02, xGrid, xGrid)
+
+colors = list("black","red","blue","green","purple")
+f = rmvnorm(n = 1, mean = rep(0,length(xGrid)), sigma = K)
+plot(xGrid,f, type = "l", ylim = c(-3,3), col = colors[[1]] , main = "ell = 0.2")
+for (i in 1:4){
+  f = rmvnorm(n = 1, mean = rep(0,length(xGrid)), sigma = K)
+  lines(xGrid,f, col = colors[[i+1]])
+}
+
+
+
+```
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+
+#ell = 1
+kernel1 <- k(sigmaf = 1, ell = 1) # This constructs the covariance function
+xGrid = seq(-1,1,by=0.1) 
+K = kernelMatrix(kernel = kernel02, xGrid, xGrid)
+
+colors = list("black","red","blue","green","purple")
+f = rmvnorm(n = 1, mean = rep(0,length(xGrid)), sigma = K)
+plot(xGrid,f, type = "l", ylim = c(-3,3), col = colors[[1]] , main = "ell = 1")
+for (i in 1:4){
+  f = rmvnorm(n = 1, mean = rep(0,length(xGrid)), sigma = K)
+  lines(xGrid,f, col = colors[[i+1]])
+}
+
+
+```
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+# ell = 0.2
+kernel02(0,0.1) # Note: here correlation=covariance since sigmaf = 1 
+kernel02(0,0.5)
+
+# ell = 1
+kernel1(0,0.1) # Note: here correlation=covariance since sigmaf = 1 
+kernel1(0,0.5)
+
+
+```
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+#gpData
+load("C:/Users/aaman/Documents/AML/Advance-Machine-Learning/Additional Tasks/GPdata.RData")
+
+sigmaNoise = 0.2
+sigmaF = 1
+ell1 = 0.2
+ell2 = 1
+
+#data plot 
+
+library(ggplot2)
+
+
+
+ggplot()+
+  geom_line(aes(x , y ))+
+  xlab("x") + ylab("y") + ggtitle("GP Data")
+
+```
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+#fit regression 
+kernelFunc <- k(sigmaf = 1, ell = 0.2)
+gpFit = gausspr(x , y , kernel = kernelFunc ,var = sigmaNoise^2)
+xs = seq(min(x),max(x), length.out = 100)
+meanPred <- predict(gpFit, data.frame(x = xs))
+
+
+ggplot()+
+  geom_line(aes(x , y , color = "original Data"))+
+  geom_line(aes(xs , meanPred , color = "predicted mean"))+
+  xlab("x") + ylab("y") + ggtitle("GP Data")
+
+
+
+```
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+n <- length(x)
+Kss <- kernelMatrix(kernel = kernelFunc, x = xs, y = xs)
+Kxx <- kernelMatrix(kernel = kernelFunc, x = x, y = x)
+Kxs <- kernelMatrix(kernel = kernelFunc, x = x, y = xs)
+Covf = Kss-t(Kxs)%*%solve(Kxx + sigmaNoise^2*diag(n), Kxs)
+
+ggplot()+
+  geom_line(aes(x , y , color = "original Data"))+
+  geom_line(aes(xs , meanPred , color = "predicted mean"))+
+  geom_line(aes(xs , (meanPred - 1.96*sqrt((diag(Covf) + sigmaNoise^2))) , color = "PB"))+
+  geom_line(aes(xs , (meanPred + 1.96*sqrt((diag(Covf) + sigmaNoise^2))) , color = "PB"))+
+  xlab("x") + ylab("y") + ggtitle("GP Data")
+
+
+
+
+
+
+```
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+```
+
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+```
+
+
+
+
+
+**Appendix**
+```{r, ref.label = knitr::all_labels(), echo = TRUE, eval = FALSE}
+```

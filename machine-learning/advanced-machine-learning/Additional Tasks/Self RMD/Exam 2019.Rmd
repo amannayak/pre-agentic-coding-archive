@@ -1,0 +1,401 @@
+---
+title: "Exam 2019"
+author: "Aman Kumar Nayak"
+date: "10/24/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Question 1
+
+
+*1,1*
+
+Now in this we have have 3 doors where behind one of the door, we have car and rest two contain Goat. Now participant initially select and a door and if it does not contain Car then Host Monte Hall selects a door where he knows which gate contain a car and always opens a door such that it would contain Goat so Host decision in dependent on participants decision and his knowledge about where we have a car. So we can construct a BN knowing all this. Also Initial decision of Participant and what goes behind door are independent event.
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+library(bnlearn)
+library(Rgraphviz)
+library(gRain)
+
+modelDag = model2network("[D][P][M|D:P]")
+
+bnlearn::graphviz.plot(modelDag)
+
+#bnFit = bnlearn::custom.fit()
+
+```
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+# now initially car can be behind any of the three doors and Participant can select any door with equally probability of 1/3
+
+cptD = matrix(c(1/3, 1/3, 1/3), ncol = 3, dimnames = list(NULL, c("D1", "D2", "D3"))) # Parameters
+cptP = matrix(c(1/3, 1/3, 1/3), ncol = 3, dimnames = list(NULL, c("P1", "P2", "P3")))
+cptM = c(
+  0,.5,.5,
+  0,0,1,
+  0,1,0,
+  0,0,1,
+  .5,0,.5,
+  1,0,0,
+  0,1,0,
+  1,0,0,
+  .5,.5,0)
+dim(cptM) = c(3, 3, 3)
+dimnames(cptM) = list("M" = c("M1", "M2", "M3"), "D" =  c("D1", "D2", "D3"), "P" = c("P1", "P2", "P3"))
+
+cptM
+```
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+MHfit = custom.fit(modelDag , dist = list(D = cptD , P=cptP,M=cptM))
+
+MHcom = compile(as.grain(MHfit))
+
+MHfitEv = setFinding(MHcom,nodes=c(""),states=c("")) # Exact inference
+querygrain(MHfitEv,c("P"))
+
+MHfitEv<-setFinding(MHcom,nodes=c("D","M"),states=c("D1","M2"))
+querygrain(MHfitEv,c("P"))
+
+MHfitEv<-setFinding(MHcom,nodes=c("D","M"),states=c("D1","M3"))
+querygrain(MHfitEv,c("P"))
+
+```
+
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+library(bnlearn)
+library(Rgraphviz)
+library(gRain)
+
+
+modelXOR = model2network("[A][B][C|A:B]")
+bnlearn::graphviz.plot(modelXOR)
+
+```
+
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+cptA = matrix(c(0.5, 0.5), ncol = 2, dimnames = list(NULL, c("0", "1")))
+cptB = matrix(c(0.5, 0.5), ncol = 2, dimnames = list(NULL, c("0", "1")))
+
+cptC = c(1,0,0,1,0,1,1,0)
+
+cptC = c(1,0,0,1,0,1,1,0)
+dim(cptC) = c(2, 2, 2)
+dimnames(cptC) = list("C" = c("0", "1"), "A" =  c("0", "1"), "B" = c("0", "1"))
+``` 
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+xorfit<-custom.fit(modelXOR,list(A=cptA,B=cptB,C=cptC))
+
+for(i in 1:10){
+  data = bnlearn::rbn(xorfit , 1000)
+  xorhc = bnlearn::hc(data , score = "bic")
+  plot(xorhc)
+}
+
+```
+
+
+The HC fails because the data comes from a distribution that is not faithful to the graph.
+In other words, the graph has an edge A -> C but A is marginally independent of C in the
+distribution. The same for B and C. And, of course, the same for A and B since there is no 
+edge between them. So, the HC cannot find two dependent variables to link with an edge and,
+thus, it adds no edge to the initial empty graph.
+
+
+#Question 2
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+library(HMM)
+States=1:10 # Sectors
+Symbols=1:11 # Sectors + malfunctioning
+transProbs=matrix(c(.5,.5,0,0,0,0,0,0,0,0,
+                    0,.5,.5,0,0,0,0,0,0,0,
+                    0,0,.5,.5,0,0,0,0,0,0,
+                    0,0,0,.5,.5,0,0,0,0,0,
+                    0,0,0,0,.5,.5,0,0,0,0,
+                    0,0,0,0,0,.5,.5,0,0,0,
+                    0,0,0,0,0,0,.5,.5,0,0,
+                    0,0,0,0,0,0,0,.5,.5,0,
+                    0,0,0,0,0,0,0,0,.5,.5,
+                    .5,0,0,0,0,0,0,0,0,.5), nrow=length(States), ncol=length(States), byrow = TRUE)
+
+emissionProbs=matrix(c(.1,.1,.1,0,0,0,0,0,.1,.1,.5,
+                       .1,.1,.1,.1,0,0,0,0,0,.1,.5,
+                       .1,.1,.1,.1,.1,0,0,0,0,0,.5,
+                       0,.1,.1,.1,.1,.1,0,0,0,0,.5,
+                       0,0,.1,.1,.1,.1,.1,0,0,0,.5,
+                       0,0,0,.1,.1,.1,.1,.1,0,0,.5,
+                       0,0,0,0,.1,.1,.1,.1,.1,0,.5,
+                       0,0,0,0,0,.1,.1,.1,.1,.1,.5,
+                       .1,0,0,0,0,0,.1,.1,.1,.1,.5,
+                       .1,.1,0,0,0,0,0,.1,.1,.1,.5), nrow=length(States), ncol=length(Symbols), byrow = TRUE)
+startProbs=c(.1,.1,.1,.1,.1,.1,.1,.1,.1,.1)
+hmm=initHMM(States,Symbols,startProbs,transProbs,emissionProbs)
+hmm
+```
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+obs=c(1,11,11,11)
+posterior(hmm,obs) #smooth distribution
+viterbi(hmm,obs)
+
+```
+
+#Question 3
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+posteriorGP = function(par , X , y , XStar, sigmaNoise){
+  #Inputs 
+  #X: Vector of training inputs.
+  #y: Vector of training targets/outputs.
+  #XStar: Vector of inputs where the posterior distribution is evaluated
+  #sigmaNoise: Noise standard deviation 
+ 
+  #k: Covariance function or kernel. #SquaredExpKernel
+  
+   sigmaF = par[1]
+   l = par[2]
+  
+   k = SquaredExpKernel(x1 = X, x2 = X , sigmaF = sigmaF , l = l)
+   
+   L_upper = chol(k + (sigmaNoise * diag(length(diag(k)))))
+   
+   #since as per documentation of chol function, it returns upper triangle, 
+   #we have to take transpose of it 
+   
+   L = t(L_upper)
+   
+   #now in order to calculate alpha we have alpha = L.Transpose / (L/y)
+   #now using Ax = b => x = b/A so to find L/y solution we can use solve function 
+   
+   L_by_y = solve(L , y)
+   
+   #now trans(x.trans) = x so we can use L_Upper directly 
+   alpha = solve(L_upper , L_by_y)
+   
+   
+   K_Star = SquaredExpKernel(x1 = X, x2 = XStar , sigmaF = sigmaF , l = l)
+   
+   #predicted mean 
+   f.Star = t(K_Star) %*% alpha
+   
+   v = solve(L , K_Star)
+   #predicted Variance 
+   V_f.Star = SquaredExpKernel(x1 = XStar, x2 = XStar , 
+                               sigmaF = sigmaF , l = l) - (t(v) %*% v)
+   
+   #taking diagnol elements of covariance matrix for variance in ii
+   V_f.Star = diag(V_f.Star)
+   #log marginal likelihood
+   logMargLikeli = -(0.5 * t(y) %*% alpha) -   sum(diag(L)) - ((length(y)/2)*log(2*pi))
+   
+   return(logMargLikeli)
+}#posteriorDist
+
+
+```
+
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+tempData <- read.csv('https://github.com/STIMALiU/AdvMLCourse/raw/master/GaussianProcess/Code/TempTullinge.csv', header=TRUE, sep=';')
+
+temp = tempData$temp
+time = 1 : length(temp)
+
+subset = seq(1, length(temp), by = 5)
+temp5th = temp[subset]
+time5th = time[subset]
+
+lmFit = lm(scale(temp5th) ~ scale(time5th) + I(scale(time5th)^2))
+sigmaNoiseFit = sd(lmFit$residuals)
+
+# SquaredExpKernel <- function(par=c(20,0.2),x1,x2){
+#   n1 <- length(x1)
+#   n2 <- length(x2)
+#   K <- matrix(NA,n1,n2)
+#   for (i in 1:n2){
+#     K[,i] <- (par[1]^2)*exp(-0.5*( (x1-x2[i])/par[2])^2 )
+#   }
+#   return(K)
+# }
+
+SquaredExpKernel <- function(x1,x2,sigmaF=1,l=3){
+  n1 <- length(x1)
+  n2 <- length(x2)
+  K <- matrix(NA,n1,n2)
+  for (i in 1:n2){
+    K[,i] <- sigmaF^2*exp(-0.5*( (x1-x2[i])/l)^2 )
+  }
+  return(K)
+}
+
+#posteriorGP = function(par , X , y , XStar, sigmaNoise)
+llk = posteriorGP(par = c(20,0.1) , X = time5th , y = temp5th , XStar = time5th, sigmaNoise = sigmaNoiseFit  )
+
+llk
+
+```
+
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+# llkMat = matrix(rep(0 , 1000) , nrow = 1000 , ncol = 3)
+# colnames(llkMat) = c("SigmaF" , "eel" , "LogLikelihood")
+# j = 1
+# for(sF in seq(15 , 30 , length.out =  1000)){
+#   for(ell in seq(0.01 , 4 , length.out = 1000)){
+#     llk = posteriorGP(par = c(sF , ell) , X = time5th , y = temp5th , XStar = time5th, sigmaNoise = sigmaNoiseFit  )
+#     llkMat[j,1] = sF
+#     llkMat[j,2] = ell
+#     llkMat[j,3] = llk  
+#   }
+# }
+
+```
+
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+optimalSelection = optim(par = c(1,0.1) , fn = posteriorGP , X = time5th , y = temp5th ,
+                         XStar = time5th, sigmaNoise = sigmaNoiseFit , method="L-BFGS-B" ,
+                         lower = c(.Machine$double.eps, .Machine$double.eps),
+                         control=list(fnscale=-1))
+
+
+optimalSelection
+```
+
+
+#3,2
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+library(kernlab)
+library(AtmRay)
+#import data 
+
+regData = read.csv("https://github.com/STIMALiU/AdvMLCourse/raw/master/GaussianProcess/Code/banknoteFraud.csv", header=FALSE, sep=",")
+
+names(regData) <- c("varWave","skewWave","kurtWave","entropyWave","fraud")
+
+regData[,5] <- as.factor(regData[,5])
+
+set.seed(111) 
+SelectTraining <- sample(1:dim(regData)[1], size = 1000, replace = FALSE)
+y <- regData[,5]
+X <- as.matrix(regData[,1:4])
+yTrain <- y[SelectTraining]
+yTest <- y[-SelectTraining]
+XTrain <- X[SelectTraining,]
+XTest <- X[-SelectTraining,]
+SelectVal <- sample(1:1000, size = 200, replace = FALSE) # 800 samples for training, 200 for validation, and the rest for test (optional)
+yVal <- yTrain[SelectVal]
+XVal <- XTrain[SelectVal,]
+yTrain <- yTrain[-SelectVal]
+XTrain <- XTrain[-SelectVal,]
+
+```
+
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+acVal <- function(par=c(0.1) , testPred = FALSE)  
+  {
+    gpClassification = gausspr(XTrain[,selVars], y = yTrain , 
+                             type = "classification" , kernel = c("rbfdot"),
+                             kpar = list(sigma=par[1])
+                             )
+    if(testPred == TRUE){
+      
+      fraudPred = predict(gpClassification , XTest[,selVars])
+      CM = table(fraudPred , yTest)
+      Accuracy = sum(diag(CM)) / sum(CM)
+      return(Accuracy)
+    }
+    
+    #validation
+    fraudPred = predict(gpClassification , XVal[,selVars])
+    CM = table(fraudPred , yVal)
+    Accuracy = sum(diag(CM)) / sum(CM)
+    return(Accuracy)
+    
+}
+
+
+selVars <- c(1,2,3,4)
+#check with automatic kernel
+GPfitFraud <- gausspr(x = XTrain[,selVars], y = yTrain, kernel = "rbfdot", kpar = 'automatic')
+GPfitFraud
+predVal <- predict(GPfitFraud,XVal[,selVars])
+table(predVal, yVal)
+accuracyVal <-sum(predVal==yVal)/length(yVal)
+accuracyVal
+
+
+
+
+```
+
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+#time consuming
+# bestVal<-accuracyVal # Grid search
+# for(j in seq(0.1,10,0.1)){
+#   aux <- acVal(j)
+#   if(bestVal<aux){
+#     bestVal<-aux
+#     bestj<-j
+#   }
+# }
+# bestVal
+# bestj
+
+foo<-optim(par = c(0.1), fn = acVal, method="L-BFGS-B",
+           lower = c(.Machine$double.eps),control=list(fnscale=-1)) # 
+
+foo
+
+```
+
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+accuracy = acVal(par = foo$par)
+
+accuracy
+
+
+#prediction for test 
+
+accuracyTest = acVal(par = foo$par , testPred = TRUE)
+accuracyTest
+```
+
+
+
+**Appendix**
+```{r, ref.label = knitr::all_labels(), echo = TRUE, eval = FALSE}
+```

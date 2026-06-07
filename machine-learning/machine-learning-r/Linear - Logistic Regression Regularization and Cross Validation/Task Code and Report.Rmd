@@ -1,0 +1,600 @@
+---
+title: "Lab 1 Machine Learning"
+author: "Aman Kumar Nayak"
+date: "11/22/2019"
+toc : True
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE,fig.height = 8,fig.width =16 , tidy = TRUE )
+```
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+library(dplyr)
+library(magrittr) 
+library(kknn)
+library(readxl)
+library(ggplot2)
+library(MASS)
+library(tidyverse)
+library(broom)
+library(glmnet)
+```
+
+**Assignment 1**
+
+ **Ques 1.1:** 
+
+Imported dataset spambase.xlsx and divided same into test train on random bases.
+
+```{r, echo=FALSE, warning=FALSE}
+#Import Data Into R 
+#import XML file in data frame 
+#location of Excel file in the system
+path = "G:/MS Machine Learning/Term/Term2/ML/ML Assignment/1/spambase_CSV.csv"
+#replace location as per file location 
+
+#loading CSV Data File into dataframe for analysis 
+df = data.frame(read.csv(file = path))
+
+#braking df into part for traning and testing 
+n = dim(df)[1]
+suppressWarnings(RNGversion("3.5.9"))
+set.seed(12345)
+id = sample(1:n , floor(n*0.5))
+
+#braking df into test and train dataset 
+train = df[id ,]
+test = df[-id,]
+
+```
+
+**Part 1.2**
+
+
+```{r, echo=FALSE, warning=FALSE}
+
+#Logistic Regression on Train Data Set 
+logReg = glm(Spam ~. , data = train , family = "binomial")
+
+probabilites = logReg %>% predict(test , type = "response")
+probabilitesTrain = logReg %>% predict(train , type = "response")
+
+#cat("Confusion Matrix for Test data with Y= 1 if p(Y=|X) > 0.5 else 0")
+
+condition1 = ifelse(probabilites > 0.5, 1, 0)
+con1 = table(test$Spam , condition1)
+#con1
+miscal1 = 1 - (sum(diag(con1)) / sum(con1))
+
+#cat("Confusion Matrix for Test data with Y= 1 if p(Y=|X) > 0.5 else 0")
+#miscal1
+
+
+con1Train = ifelse(probabilitesTrain > 0.5, 1, 0)
+con2 = table(train$Spam , con1Train)   
+#con2
+miscal2 = 1 - (sum(diag(con2)) / sum(con2))
+
+#cat("Confusion Matrix for Train data with Y= 1 if p(Y=|X) > 0.5 else 0")
+#miscal2
+
+```
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+cat("Confusion Matrix for Train data with Y= 1 if p(Y=|X) > 0.5 else 0" , "\n")
+cat("\n")
+con2
+cat("\n")
+cat("Misclassification Rate for Training Data is " , miscal2 , "\n")
+
+cat("\n")
+
+cat("Confusion Matrix for test data with Y= 1 if p(Y=|X) > 0.5 else 0" , "\n")
+cat("\n")
+con1
+cat("\n")
+cat("Misclassification Rate for Testing Data is " , miscal1 , "\n")
+
+```
+
+
+On analysizing misclassification rate (for Y= 1 if p(Y=|X) > 0.5 else 0) we could see that, missclassification rate for training data is less which is obvious as training and testing is done using same data but when comparing both misclassification rate comparitive difference is 1.46% only which is not that much. 
+
+
+**Part 1.3**
+
+```{r, echo=FALSE, warning=FALSE}
+
+#cat("Confusion Matrix for Test data with Y= 1 if p(Y=|X) > 0.8 else 0")
+condition2 = ifelse(probabilites > 0.8, 1, 0)
+con3 = table(test$Spam , condition2)
+#con3
+miscal3 = 1 - (sum(diag(con3)) / sum(con3))
+#miscal3
+
+#cat("Confusion Matrix for Train data with Y= 1 if p(Y=|X) > 0.8 else 0")
+con2Train = ifelse(probabilitesTrain > 0.8, 1, 0)
+con4 = table(train$Spam , con2Train)
+#con4
+miscal4 = 1 - (sum(diag(con4)) / sum(con4))
+#miscal4
+
+```
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+cat("Confusion Matrix for Train data with Y= 1 if p(Y=|X) > 0.8 else 0" , "\n")
+cat("\n")
+con4
+cat("\n")
+cat("Misclassification Rate for Training Data is " , miscal4 , "\n")
+
+cat("\n")
+
+cat("Confusion Matrix for test data with Y= 1 if p(Y=|X) > 0.8 else 0" , "\n")
+cat("\n")
+con3
+cat("\n")
+cat("Misclassification Rate for Testing Data is " , miscal3 , "\n")
+
+```
+
+
+With the change classification principle i.e. Y= 1 if p(Y=|X) > 0.8 else 0, the misclassification rate for training data is higher as compared to the classification principle P(Y=1|X) > 0.5 in both the cases of training and testing data.
+
+**Effect of increased threshold**
+
+Even though misclassification rate is high but it can be seen that significantly less mails have been classified as spam for this new classification principle as the threshold for classification is high which help in false spam classification of non-spam email.
+
+
+**Part 1.4**
+
+
+```{r, echo=FALSE, warning=FALSE}
+
+knn30Train = kknn(as.factor(Spam) ~. , train , train , k = 30)
+T1 =  table(train$Spam , knn30Train$fitted.values)
+Knn_miscal1 = 1 - (sum(diag(T1)) / sum(T1))
+#miscal1
+
+knn30Test = kknn(as.factor(Spam) ~. , train , test , k = 30)
+T2 =  table(train$Spam , knn30Test$fitted.values)
+Knn_miscal2 = 1 - (sum(diag(T2)) / sum(T2))
+#miscal2
+
+
+```
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+cat("\n")
+cat("Confusion Matrix for Train data in case of KNN at K=30" , "\n")
+
+T1
+cat("\n")
+
+cat("At KNN with K=30 Misclassification Rate for Training Data is " , Knn_miscal1 , "\n")
+cat("\n")
+
+
+
+cat("Confusion Matrix for Testing data in case of KNN at K=30" , "\n")
+
+T2
+cat("\n")
+
+cat("At KNN with K=30 Misclassification Rate for Testing Data is " , Knn_miscal2 , "\n")
+
+```
+
+As compared to the logistic regression models, the misclassification rate for the K- nearest neighbours model with k = 30 is bit high for training data while it is historically high for testing data.
+
+
+**Part 1.5**
+
+```{r, echo=FALSE, warning=FALSE}
+
+#@ KNN = 1
+knn1Train = kknn(as.factor(Spam) ~. , train , train , k = 1)
+T3 =  table(train$Spam , knn1Train$fitted.values)
+miscal3 = 1 - (sum(diag(T3)) / sum(T3))
+#miscal3
+
+knn1Test = kknn(as.factor(Spam) ~. , train , test , k = 1)
+T4 =  table(train$Spam , knn1Test$fitted.values)
+miscal4 = 1 - (sum(diag(T4)) / sum(T4))
+#miscal4
+
+```
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+cat("\n")
+cat("Confusion Matrix for Training data in case of KNN at K=1" , "\n")
+
+T3
+cat("\n")
+
+cat("At KNN with K=1 Misclassification Rate for Training Data is " , miscal3 , "\n")
+
+cat("\n")
+cat("Confusion Matrix for Testing data in case of KNN at K=1" , "\n")
+
+T4
+cat("\n")
+
+cat("At KNN with K=1 Misclassification Rate for Testing Data is " , miscal4 , "\n")
+
+```
+
+When only one neighbour i.e. K = 1 is set we could see in case of training data misclassification is 0 as it is refereing to itself which is valid as train and prediction is done on same dataset while in case of test it is with 47% error rate which make model extremly poor as it is just referring to one closest neighbour. 
+
+
+
+
+**Assignment 3**
+
+```{r, echo=FALSE, warning=FALSE}
+linReg = function(trainY,trainX , testY, testX){
+  modelMatrix    = as.matrix(cbind(1,trainX))
+  y              = as.matrix(trainY)
+  #Computing beta for test parameter 
+  beta           = solve(t(modelMatrix)%*%modelMatrix)%*%t(modelMatrix)%*%y
+  
+  #Computing Y pred and residual of same 
+  predMatrix     = as.matrix(cbind(1,testX))
+  fittedValues   = predMatrix%*%beta
+  residual       = as.matrix(testY) - fittedValues
+  return(residual)  
+}#linReg = function(){
+
+
+myCV=function(X,Y,Nfolds){
+  n=length(Y)
+  p=ncol(X)
+  suppressWarnings(RNGversion("3.5.9"))
+  set.seed(12345)
+  ind=sample(n,n)
+  X1=X[ind,]
+  Y1=Y[ind]
+  sF=floor(n/Nfolds)
+  MSE=numeric(2^p-1)
+  Nfeat=numeric(2^p-1)
+  Features=list()
+  Features_axis <- c(0,0,0,0,0)
+  curr=0
+  
+  #we assume 5 features.
+  
+  for (f1 in 0:1)
+    for (f2 in 0:1)
+      for(f3 in 0:1)
+        for(f4 in 0:1)
+          for(f5 in 0:1)
+          { 
+            model= c(f1,f2,f3,f4,f5)
+            if (sum(model)==0) next()
+            
+            SSE=0
+
+            Xpred = data.frame(X1[,which(model == 1)])
+            Y1 = data.frame(Y1)            
+            knode_s = 1
+            knode_e = sF
+            for (k in 1:Nfolds)
+            {
+              trainX = Xpred[-(knode_s:knode_e),]
+              testX  = Xpred[knode_s:knode_e, ]
+              trainY = Y1[-(knode_s:knode_e),]
+              testY  = Y1[knode_s:knode_e,]
+              
+                
+              residual = linReg(trainY,trainX ,testY, testX)
+              
+              SSE=SSE+sum((residual)^2)
+              
+                if(knode_e <= n)
+                {
+                  knode_s = (sF * k) +1
+                  knode_e = sF * (k + 1)
+                }else if(n%%Nfolds != 0)
+                {
+                  knode_s = knode_e +1
+                  knode_e = n
+                  
+                  trainX = Xpred[-(knode_s:knode_e),]
+                  testX  = Xpred[knode_s:knode_e, ]
+                  trainY = Y1[-(knode_s:knode_e),]
+                  testY  = Y1[knode_s:knode_e,]
+                  
+                  
+                  residual = linReg(trainY,trainX ,testY, testX)
+                  
+                  SSE=SSE+sum((residual)^2)
+                }
+            }#for (k in 1:Nfolds)
+            
+            curr=curr+1
+            MSE[curr]=SSE/n
+            Nfeat[curr]=sum(model)
+            Features[[curr]]=model
+            Features_axis[curr] <- sum(model) #calculating total number of features used 
+          }#for(f5 in 0:1)
+  
+  MSEplot = plot(MSE, type="o", col="blue", xaxt = "n" ,ann=FALSE)
+            title(main="MSE vs Features", xlab = "Number of Features",
+            text(MSE , labels = Features , pos = 4),
+            font.main=4)
+            axis(1,at=1:31, labels = Features_axis)
+            
+  #MSEplot = plot(MSE)          
+   
+   i=which.min(MSE)
+   return(list(CV=MSE[i], Features=Features[[i]] , MSEplot ) )
+}
+
+op = myCV(swiss[,2:6] , swiss[,1] , 5)
+
+cat("\n")
+
+cat("Cross Validation value is : " , op$CV , "\n")
+
+cat("\n")
+
+cat("Selected Features are :" , op$Features)
+
+cat("\n")
+
+```
+
+As per plot we can see that we are getting lowest value of **Cross Validation as MSE is 50.44948** for **feature group 1 0 1 1 1** so all idependent features except Examination have impact on the model. 
+
+When looking at ignored feature i.e. Examination which is measure of percentage draftees receiving highest mark on army examination which only cover specific set of population thus do not impact population as whole thus ignoring it will not impact model performace.
+
+Thus selected features namely Agriculture, Education, Catholic and Infant.Mortality only have highest impact.
+
+
+**Assignment 4**
+
+**Part 4.1**
+
+```{r, echo = FALSE, warning = FALSE}
+
+tecator <- read_excel("G:/MS Machine Learning/Term/Term2/ML/ML Assignment/1/tecator.xlsx")
+```
+
+```{r, echo = FALSE, warning = FALSE}
+
+ggplot(tecator) + geom_point(aes(x = Protein, y = Moisture), color = "black") +
+geom_abline(intercept = 30 , slope = 2) + 
+geom_hline(yintercept = 55 , linetype = "dashed" , col = "red")  +
+geom_vline(xintercept = 17.5 , linetype = "dotted" , col = "blue")
+
+
+corela = cor(tecator$Protein , tecator$Moisture)
+
+cat("Correlation between Moisture and Protein is ", corela)
+```      
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+# 
+# linReg = lm(formula = Moisture~Protein , data = tecator)
+# summ = summary(linReg)
+# cat("\n")
+# cat("R Square value for Linear Regression model for this data is " , summ$r.squared , "\n")
+# cat("\n")
+# 
+# abline(linReg , lwd = 3 , col = "red")
+# plot(linReg , which = c(1,1))
+
+# Though R Square value is coming as 0.6634449 but while looking at Residual V/S Fitted Values we can multiple points in the graph is constantly over or under the predicted curve. This give rise to biased nature in model thus **Linear Model do not fit the model**.
+
+```
+
+While trying to fit various straight lines over the distributed data it can be seen that non are able to cover spread of points in the data which will make induceses biasness as multiple points are always over and under the predicted curve and thus **simple linear model will not be ideal for this kind of data.** While we can see both Features have high correlation thus they can be modelled with polynomial model here. 
+
+**Part 4.2**
+
+Below is asked probabilistic model which describe independent variable in Polynomial terms
+
+$Moisture$ ~ $N$($\beta0$ + $\beta1*Protein^{1}$ + ..... + $\beta{i}*Protein^{i}$ + "$\sigma$")
+
+MSE is critical criteria which provide us great details about how well model is performing with training data, if MSE is very low for training data but on contrast it is high for testing data it suggests that model is overfitted. 
+
+
+**Part 4.3**
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+#Divide data in train and test
+suppressWarnings(RNGversion("3.5.1"))
+set.seed(123456)
+
+n = dim(tecator[,1])
+i = sample(1:n , floor(n*.5))
+trainData = tecator[i,]
+testData  = tecator[-i,]
+```
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+#train data 
+
+trainMSE  = numeric(length = 6)
+testMSE =  numeric(length = 6)
+for (i in 1:6) 
+{
+ polyLM = lm(Moisture~poly(Protein , degree = i) , data = trainData)
+ trainMSE[i] = mean((polyLM$residuals)^2) 
+ 
+ pred = predict(polyLM , newdata = testData)
+ testMSE[i] = mean((pred - testData$Moisture)^2)     
+ 
+ if(i == 3)
+ {
+   plot(polyLM , which = c(1,1) , col = "blue" ,
+        main = "Residual VS Fitted when Degree of Polynomial is 3 with Training Data")
+ }    
+ 
+  if(i == 6)
+ {
+   plot(polyLM , which = c(1,1) , col = "black",
+        main = "Residual VS Fitted when Degree of Polynomial is 6 with Training Data")
+ } 
+}
+
+# plot(trainMSE , xlab = "Polynomianl Degree" , ylab = "MSE" , type = "l", 
+#      col = "red" )
+# points(testMSE , col = "blue" , type = "l" ,  ylim = 20:40)
+
+MSE = data.frame("TrainingMSE" = trainMSE , "TestingMSE" = testMSE)
+
+ggplot(data = MSE)+
+geom_line(aes(x = 1:6 , y = trainMSE , color = "TrainingMSE"))+
+geom_line(aes(x = 1:6 , y = testMSE , color = "TestingMSE"))+
+ylab("MSE") + xlab("Polynomial Degree") + ggtitle("MSE vs Model Polynomial Degree")
+  
+
+
+```
+
+In context to plot of "MSE VS Polynomial Degree"
+
+We can see initialy when Polynomial Degree is 1, model is extemely simple as it try to fit straight line and thus have high bias and high variance which result in high value of MSE. As degree of polynomial increases model is more curved and thus we can see it is trying to reduce bias and more curved model, with decreassing value of MSE is obtaines in terms of training part thus with higher degree of polynomial model is trying to fit more perfectly with training data while it can be seen that apart from model where degree of polynomial is 3, MSE for test data is increasing thus model can be said to be in overfitting  stage. 
+
+
+Thus Model with degree of polynomial 3 is best one for given data. 
+
+**Part 4.4**
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE , results = "hide" , }
+
+#stepAIC based model selection
+
+lmFat = lm(Fat~.-Protein-Moisture-Sample , data = tecator)
+
+stepAICModel = stepAIC(lmFat)
+
+```
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+```
+
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+cat("Summary of stepAIC with 63 selected features")
+summary(stepAICModel)
+
+```
+
+
+
+While looking at summary, we can see that *63* features as they return lowest value of stepAIC which convey that only selected feature have highest impact on model prediction performance. 
+
+
+**Part 4.5**
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+#Ridge Regression 
+
+# predictor = tecator$Fat
+ reponse = as.matrix(tecator[,-c(1,102,103,104)])
+#alpha is set to 0 as ridge penality and 1 for LASSO
+ 
+rrModel = glmnet(x = as.matrix(reponse) , y = as.matrix(tecator[,102]) ,
+                 family = "gaussian" , alpha = 0)
+
+
+plot(rrModel , xvar = "lambda" , 
+     main = "Ridge Regression Plot for Coefficients Vs Penality Factor Lambda")
+
+```
+
+
+Lambda ($\lambda$) here is penality factor and objective is to make fit small by reducing residual sum of square plus add adding shrinkage penality. *Shrinkage penality is the lamda times the sum of squares of the coefficients*.
+
+So as it can be seen that coefficients which are large are shrinking more with higher value of lamdba. 
+
+In regde regression number of variable remain same in final model. 
+
+**Part 4.6**
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+lassoModel = glmnet(x = as.matrix(reponse) , y = as.matrix(tecator[,102]) ,
+                 family = "gaussian" , alpha = 1)
+
+plot(lassoModel , xvar = "lambda" , 
+     main = "LASSO Plot for Coefficients Vs Penality Factor Lambda")
+
+plot(lassoModel , xvar = "lambda" ,
+     main = "LASSO Plot for Coefficients Vs Penality Factor Lambda")
+
+```
+
+Unlike Ridge Regression in Lasso Penality is sum of the absolute values of coefficients. Now here is LASSO it shrinks coefficients estimates towards to zero and it can even set variable effect to zero when higher enough value of lambda is available while it is not possible with ridge. 
+
+Thus LASSO apart from providing coefficient shrinking it also do feature selection based on value of lambda. 
+
+**Part 4.7**
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+cvModel = cv.glmnet(x = as.matrix(reponse) , y = as.matrix(tecator[,102]) ,
+                 family = "gaussian" , alpha = 1)
+
+plot(cvModel , xvar = "lambda" , main = "LASSO Regression")
+
+```
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+# optimalLambda = cvModel$lambda.1se
+# optimalMSE = cvModel$lambda
+# optimalLambda
+# 
+# 
+# lassoCoefficents = coef(cvModel , s = "lambda.1se")
+# numberOfCoefficients = length(which(lassoCoefficents != 0))
+cat("LASSO CV Model details are as below : \n")
+cvModel
+
+# cat("below is list of selected coefficients with at Lambda = min\n")
+# 
+# lassoCoefficents = coef(cvModel , s = "lambda.min")
+# lassoCoefficents = lassoCoefficents[which(lassoCoefficents != 0)]
+# lassoCoefficents
+
+cat("Coefficients Values")
+as.matrix(coef(cvModel))
+
+
+```
+
+From above we can say that for lowest wale of MSE i.e. 11.74 we have 22 features selected here. 
+
+But looking at plot of MSE and Log lambda along wíth coefficient values for the model we can say that optimal lambda is Lambda.1se with value of 13.15 , and selected features are  11. 
+
+
+**Part 4.8**
+
+Comparision of StepAIC and Lasso Cross-Validation result.
+
+Number of selected coefficients in case of stepAIC were 63 variables while number was significantly reduced to just 11 in case of LASSO because of introduction of additional penality factor lambda which significantly reduce shrinkage here.
+
+
+**Appendix**
+```{r, ref.label = knitr::all_labels(), echo = TRUE, eval = FALSE}
+```
+
+

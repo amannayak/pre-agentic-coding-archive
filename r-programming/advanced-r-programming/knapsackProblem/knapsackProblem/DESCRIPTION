@@ -1,0 +1,27 @@
+Package: knapsackProblem
+Type: Package
+Title: Knapsack problem soultion function package
+Version: 1.0
+Date: 2019-10-07
+Authors@R: c(person("Aman Kumar", "Nayak", role = c("aut", "cre"),
+                     email = "amana551@student.liu.se"),
+              person("Yash", "Pawar", role = "aut",
+                     email = "yaspa154@student.liu.se"))
+Maintainer: Aman Kumar Nayak <amana551@student.liu.se>
+Description: This package contain 3 different function as a solution to knapsack problem. 
+License: MIT + file LICENSE
+Depends: R (>= 2.10)
+Encoding: UTF-8
+LazyData: true
+Imports:
+        parallel,
+        microbenchmark,
+        profvis
+Suggests: 
+    testthat,
+    parallel,
+    utils,
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
+RoxygenNote: 6.1.1

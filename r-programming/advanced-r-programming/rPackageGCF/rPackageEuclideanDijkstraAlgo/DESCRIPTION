@@ -1,0 +1,14 @@
+Package: rPackageEuclideanDijkstraAlgo
+Type: Package
+Title: This package contains collection of two functions namely euclidean() dijkstra()
+Version: 1.0
+Date: 2019-09-12
+Authors@R: c(person("Aman Kumar", "Nayak", role = c("aut", "cre"),
+                     email = "amana551@student.liu.se"),
+              person("Yash", "Pawar", role = "aut",
+                     email = "yaspa154@student.liu.se"))
+Maintainer: Aman Kumar Nayak <amana551@student.liu.se>
+Description: This package contains functions based on Euclidean and Dijkstra Algorithm. Function euclidean() when called with 2 arguments gives greatest common factor of the two. Function dijkstra() when called with dataframe and initanl point gives shortest weighted path.
+License: MIT + file LICENSE
+Depends: R (>= 2.10)
+RoxygenNote: 6.1.1

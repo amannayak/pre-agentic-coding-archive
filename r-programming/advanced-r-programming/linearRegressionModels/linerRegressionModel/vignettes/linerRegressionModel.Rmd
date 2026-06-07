@@ -1,0 +1,109 @@
+---
+title: "linreg"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{linreg}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+ linerRegressionModel is a package implementing a function called "linreg" to handle linear regression model. linreg will take tow arguments/; formula and data. "formula" is a formula object indicating the relationship between dependent variable and independent variable(s). "data" is a data set from which the variables in formula would take their values.
+
+ The general form of the formula is as:
+dependent var ~ independent vars 
+
+ The return value of function linreg will be a model which is an object of RC class. This object consists of the predicted values for dependent variable as well as the regression coefficients of the model parameters, the residual values, the t and p values for each coefficient, the degrees of freedom and the standard error.
+
+ The RC class defined in this function has five methods: print(), plot(), resid(), pred(), and summary() each which has a return object as follows:
+1. print(): 
+    Prints out the coefficients and coefficient names, in addition to the call of the function.
+1. plot(): 
+    Plots two different plots. The fiitted values vs the residuals, and the fiitted values vs square root of standardized residuals.
+1. resid(): 
+    Returns a vector of residual values.
+1. pred(): 
+    Returns the predicted values.
+1. coef(): 
+    Returns the coefficients.
+1. summary(): 
+    Returns the coefficients with their standard error, t-value and p-value as well as the estimate of     standard error and the degrees of freedom in the model.
+    
+# Linear Regression
+ Linear regression is a linear approach to modeling the relationship between a scalar response (or dependent variable) and one or more explanatory variables (or independent variables). For more information on Linear Regression [wikipedia](https://en.wikipedia.org/wiki/Linear_regression).
+
+# Implementation of linreg
+ To show the how to implement the function "linreg", we will use the data set "iris" to model the relationship between Petal.Length and Species.
+
+ As mentioned earlier, "linreg" takes two arguments. "formula", and "data". In this example the data would be "iris", and the formula would be **Petal.Length $\sim$ Species**. :
+
+# Implementation of Methods:
+
+```{r}
+  #Print method
+  load("data.RData")
+  lin = linreg$new(formula = Petal.Length~Species, data = iris)
+  lin$print()
+```
+
+
+This method will print the Coefficients and Coeeficient names along with the call of the function.
+
+
+```{r}
+  # plot method
+  lin = linreg$new(formula = Petal.Length~Species, data = iris)
+  lin$plot()
+```
+
+
+This method Plots two different plots. The first one shows The fiitted values vs the residuals, and the second one illustrates the fiitted values vs square root of standardized residuals.
+
+
+```{r}
+# resid method
+  lin = linreg$new(formula = Petal.Length~Species, data = iris)
+  lin$resid()
+```
+
+
+This method returns a vector of residual values, or the error term vector.
+
+
+```{r}
+  # pred method
+  lin = linreg$new(formula = Petal.Length~Species, data = iris)
+  lin$pred()
+```
+
+
+This method returns the predicted values for dependent variable.
+
+
+```{r}
+  # coef method
+  lin = linreg$new(formula = Petal.Length~Species, data = iris)
+  lin$coef()
+```
+
+
+This method returns the regression coefficients of the model.
+
+
+```{r}
+  # summary method
+  lin = linreg$new(formula = Petal.Length~Species, data = iris)
+  lin$summary()
+```
+
+
+This method returns the coefficients with their standard error, t-value and p-value as well as the estimate of standard error and the degrees of freedom in the model.
+
+
+

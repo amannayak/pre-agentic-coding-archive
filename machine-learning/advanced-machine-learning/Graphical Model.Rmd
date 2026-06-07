@@ -1,0 +1,92 @@
+---
+title: "Graphical Model"
+author: "Aman Kumar Nayak"
+date: "9/5/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,fig.height = 8,fig.width =16 )
+```
+
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+#Requireinstall packages() 
+#install.packages("bnlearn")
+#install.packages("BiocManager")
+#library(BiocManager)
+#BiocManager::install("RBGL")
+#install.packages("gRain")
+#install.packages("Rgraphviz")
+#install.packages("qgraph")
+
+library(gRain)
+library(bnlearn)
+library(Rgraphviz)
+```
+
+***Question 1***
+
+Hill Climbing Algorithm 
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+
+#graph without any inital structure is used here 
+#field start is set as null
+bn.hc = hc(asia , score = "aic" , restart = 5)
+
+cat("Network with parameter Score = AIC and Restart = 5")
+cat("\n")
+print(bn.hc)
+
+cat("\n")
+bn.hc2 = hc(asia , score = "aic" , restart = 1)
+cat("Network with parameter Score = AIC and Restart = 1")
+cat("\n")
+print(bn.hc2)
+cat("\n")
+
+
+
+```
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+#plot(bn.hc)
+#library(Rgraphviz)
+#graphviz.plot(bn.hc)
+#library(qgraph)
+
+par(mfrow = c(1,2))
+bnlearn::graphviz.plot(bn.hc)
+bnlearn::graphviz.plot(bn.hc2)
+```
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+```
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+```
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+```
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+```
+
+
+**Appendix**
+```{r, ref.label = knitr::all_labels(), echo = TRUE, eval = FALSE}
+```
+
+

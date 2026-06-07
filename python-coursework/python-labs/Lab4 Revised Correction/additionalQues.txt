@@ -1,0 +1,7 @@
+#Additional Question 
+
+#Question 1 
+To clean up data, post splitting file into list of words, I have filtered it for non-useful characters to avoid duplicate words as implemented in method filterWord. 
+
+#Question 2
+Majorly I have used list and dictionary since dictionary provides the flexibility of paring sensible data as key-value pair thus all associative task we easy to perform.

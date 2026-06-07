@@ -1,0 +1,639 @@
+---
+title: "Graphical Model"
+author: "Aman Kumar Nayak"
+date: "9/5/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,fig.height = 8,fig.width =16 )
+```
+
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+#Requireinstall packages() 
+install.packages("bnlearn")
+install.packages("BiocManager")
+
+library(BiocManager)
+BiocManager::install("RBGL")
+install.packages("gRain")
+install.packages("Rgraphviz")
+install.packages("qgraph")
+library(gRbase)
+library(gRain)
+library(bnlearn)
+library(Rgraphviz)
+```
+
+***Question 1***
+
+**Data** : The asia data set contains the following variables:
+
+* D (dyspnoea), a two-level factor with levels yes and no.
+
+* T (tuberculosis), a two-level factor with levels yes and no.
+
+* L (lung cancer), a two-level factor with levels yes and no.
+
+* B (bronchitis), a two-level factor with levels yes and no.
+
+* A (visit to Asia), a two-level factor with levels yes and no.
+
+* S (smoking), a two-level factor with levels yes and no.
+
+* X (chest X-ray), a two-level factor with levels yes and no.
+
+* E (tuberculosis versus lung cancer/bronchitis), a two-level factor with levels yes and no.
+
+
+Hill Climbing Algorithm 
+
+1st 
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+
+#graph without any inital structure is used here 
+#field start is set as null
+bn.hc1 = hc(asia , score = "aic" , restart = 0)
+# cat("Network with parameter Score = AIC and Restart = 5")
+# cat("\n")
+# print(bn.hc)
+
+# cat("\n")
+bn.hc2 = hc(asia , score = "aic" , restart = 1)
+# cat("Network with parameter Score = AIC and Restart = 1")
+# cat("\n")
+# print(bn.hc2)
+# cat("\n")
+
+
+#intiate network 
+initiate = bnlearn::empty.graph(nodes = c("D" , "T", "L", "B", "A", "S", "X", "E"))
+
+#initiate = bnlearn::compare(bn.hc, bn.hc2 , arcs = TRUE)
+
+initiate = bnlearn::set.arc(initiate, from = "A" , to = "S" )
+
+
+#using same config except different score methods
+
+bn.hc3 = bnlearn::hc(asia , score = "aic" , restart = 1 , start = initiate)
+
+
+# initiate2 = bnlearn::set.arc(initiateG, from = "A" , to = "X" )
+
+#when score is set to Bayesian Dirichlet equivalent score (bde)
+bn.hc4 = bnlearn::hc(asia , score = "bde" , restart = 1
+                     , start = initiate
+                     )
+
+bn.hc4_noInit = bnlearn::hc(asia , score = "bde" , restart = 1
+                     
+                     #, start = initiate
+                     )
+
+
+# initiate3 = bnlearn::set.arc(initiateG, from = "" , to = "X" )
+# 
+# #when score is set to Bayesian Dirichlet equivalent score (bde)
+# bn.hc4 = bnlearn::hc(asia , score = "bde" , restart = 5
+#                      #, start = initiate2
+#                      )
+
+
+bn.hc5 = bnlearn::hc(asia, score = "bic" , restart = 1 , start = initiate)
+
+bn.hc5_noInit = bnlearn::hc(asia, score = "bic" , restart = 1
+                     #, start = initiate
+                     )
+
+
+```
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+#plot(bn.hc)
+#library(Rgraphviz)
+#graphviz.plot(bn.hc)
+#library(qgraph)
+
+par(mfrow = c(1, 3))
+bnlearn::graphviz.plot(bn.hc1 , main = "1")
+bnlearn::graphviz.plot(bn.hc2, main = "2")
+bnlearn::graphviz.plot(bn.hc3, main = "3")
+
+
+par(mfrow = c(2,2))
+bnlearn::graphviz.plot(bn.hc4, main = "4")
+bnlearn::graphviz.plot(bn.hc4_noInit, main = "4 no init")
+bnlearn::graphviz.plot(bn.hc5, main = "5")
+bnlearn::graphviz.plot(bn.hc5_noInit, main = "5 no init")
+
+```
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+#check with arcs , vstructs, cpdag and all.equal 
+
+
+#graph without any inital structure is used here 
+#field start is set as null
+bn.hc = hc(asia , score = "aic" , restart = 5)
+# cat("Network with parameter Score = AIC and Restart = 5")
+# cat("\n")
+# print(bn.hc)
+
+# cat("\n")
+bn.hc2 = hc(asia , score = "aic" , restart = 1)
+# cat("Network with parameter Score = AIC and Restart = 1")
+# cat("\n")
+# print(bn.hc2)
+# cat("\n")
+
+
+#intiate network 
+initiate = bnlearn::empty.graph(nodes = c("D" , "T", "L", "B", "A", "S", "X", "E"))
+
+#initiate = bnlearn::compare(bn.hc, bn.hc2 , arcs = TRUE)
+
+initiate = bnlearn::set.arc(initiate, from = "A" , to = "X" )
+
+
+#using same config except different score methods
+
+bn.hc3 = bnlearn::hc(asia , score = "aic" , restart = 1 , start = initiate)
+
+
+# initiate2 = bnlearn::set.arc(initiateG, from = "A" , to = "X" )
+
+#when score is set to Bayesian Dirichlet equivalent score (bde)
+bn.hc4 = bnlearn::hc(asia , score = "bde" , restart = 1
+                     , start = initiate
+                     )
+
+bn.hc4_noInit = bnlearn::hc(asia , score = "bde" , restart = 1
+                     
+                     #, start = initiate
+                     )
+
+
+# initiate3 = bnlearn::set.arc(initiateG, from = "" , to = "X" )
+# 
+# #when score is set to Bayesian Dirichlet equivalent score (bde)
+# bn.hc4 = bnlearn::hc(asia , score = "bde" , restart = 5
+#                      #, start = initiate2
+#                      )
+
+
+bn.hc5 = bnlearn::hc(asia, score = "bic" , restart = 1 , start = initiate)
+
+bn.hc5_noInit = bnlearn::hc(asia, score = "bic" , restart = 1
+                     #, start = initiate
+                     )
+
+
+
+
+                     
+
+
+```
+
+Set 2 just to check if re-run is changing graphical models 
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+#plot(bn.hc)
+#library(Rgraphviz)
+#graphviz.plot(bn.hc)
+#library(qgraph)
+
+par(mfrow = c(1, 3))
+bnlearn::graphviz.plot(bn.hc , main = "1")
+bnlearn::graphviz.plot(bn.hc2, main = "2")
+bnlearn::graphviz.plot(bn.hc3, main = "3")
+
+
+par(mfrow = c(2,2))
+bnlearn::graphviz.plot(bn.hc4, main = "4")
+bnlearn::graphviz.plot(bn.hc4_noInit, main = "4 no init")
+bnlearn::graphviz.plot(bn.hc5, main = "5")
+bnlearn::graphviz.plot(bn.hc5_noInit, main = "5 no init")
+
+```
+
+
+***Question 2***
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+asiaData = bnlearn::asia
+
+#Fetching 80% of Data 
+n = dim(asiaData)[1]
+suppressWarnings(RNGversion("3.5.9"))
+set.seed(12345)
+id = sample(1:n , floor(n*0.8))
+train = asiaData[id,]
+test = asiaData[-id , ]
+
+```
+
+Calculating inference for S (Smoking)
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+#Inference Part 
+
+#creating object of class bn 
+
+#initiate network 
+initiate = bnlearn::empty.graph(nodes = c("D" , "T", "L", "B", "A",  "X", "E" , "S"))
+initiate = bnlearn::set.arc(initiate, from = "T" , to = "D" )
+
+bn.hc = bnlearn::hc(asia , score = "aic" , restart = 10 , 
+                    start = initiate
+                    )
+
+cat("Score Based Structure")
+bn.hc
+cat("\n")
+cat("Graph associated with a Bayesian network ")
+cat("\n")
+bnlearn::graphviz.plot(bn.hc, main = "Bayesian Network" 
+                       #,  layout = "neato",
+                       ,highlight = list(nodes = "S" ,  col = "tomato", fill = "orange") )
+cat("\n")
+
+#fit
+cat("Fitting Parameter of Bayesian Model ")
+
+#*****
+
+fitting = bn.fit(x = bn.hc , data =  train , method = "bayes" 
+                 #, debug = TRUE
+                 )
+
+#cat("Conditional Probability of node S")
+
+#bn.fit.barchart(fitting$S)
+
+#*****
+cat("\n")
+
+cat("Bayesian network as a list of conditional probability tables")
+
+#grain object 
+cat("\n")
+grainObject = bnlearn::as.grain(fitting)
+cat("\n")
+#grainObject
+cat("\n")
+
+
+#compile conditional probabilities 
+compiled = compile(object = grainObject)
+
+#calling setfinding
+
+findings_Yes = setFinding(grainObject , nodes = c("S") , states = c("yes" ))
+findings_No = setFinding(grainObject , nodes = c("S") , states = c("no"))
+
+#Stating Evidence 
+
+cat("Under selected model Probability of observing this evidence for S = Yes is ")
+cat("\n")
+pEvidence(findings_Yes)
+cat("\n")
+cat("Under selected model Probability of observing this evidence for S = No is ")
+cat("\n")
+pEvidence(findings_No)
+cat("\n")
+
+
+#Querying Network 
+querygrain(findings_Yes , nodes = c("L" , "A" , "D"))
+
+```
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+#Furthur Exploration with querygrain 
+
+tt = querygrain(grainObject , type = "joint")
+tt
+```
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+prob_table = prop.table(tt)
+
+tb = table(prob_table)
+
+
+```
+
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+#querying on data 
+
+s = cpdist(fitting , nodes = "S" , evidence = TRUE , method = )
+
+table(s)
+```
+
+Question 2 
+
+Prediction is completed 
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+#creating DAG
+initiate = bnlearn::empty.graph(nodes = c("D" , "T", "L", "B", "A",  "X", "E" , "S"))
+initiate = bnlearn::set.arc(initiate, from = "T" , to = "D" )
+bn.hc = bnlearn::hc(asia , score = "aic" , restart = 10 , start = initiate )
+#fitting data to DAC 
+fitData = bn.fit(x = bn.hc , data =  train , method = "bayes")
+#converting to grain object and compiling
+compiled_Grain = compile(object = bnlearn::as.grain(fitData))
+
+#Prediction on Test Data except S 
+nodesName = colnames(test[-2])
+
+#testRowSet = as.vector(unname(unlist(test[1, ])))
+
+predForS = numeric(nrow(test))
+
+for(i in 1:nrow(test)){
+  
+  #nodes : A vector of nodes; those nodes for which the (conditional) distribution is requested.
+  #states : A vector of states (of the nodes given by 'nodes')
+  
+  States = as.vector(unname(unlist(test[i, -2])))
+  Evidence_Grain = gRain::setEvidence(object = compiled_Grain , 
+                                      nodes = nodesName , 
+                                      states = States  
+                                      )
+  
+  queryGrain = querygrain(object = Evidence_Grain , nodes = "S" , 
+                          #type = "joint"
+                          type = "marginal" )
+  
+  
+  predForS[i] = ifelse( queryGrain$S[1] < queryGrain$S[2] ,  "yes" , "no")
+
+  
+}
+
+
+confusionMatrix = prop.table(table(test$S , predForS))
+
+#resProb = sum(diag(propTable))
+cat("\n")
+cat("confusion matrix")
+
+cat("\n")
+confusionMatrix
+cat("\n")
+```
+
+Writing common function for Fit and Predict 
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+fnPredict = function(trainData , testData , DAGraph.bnObject , predNode = "S" ,
+                     Method = "bayes" , markovB = FALSE , markovObj = NULL){
+  
+  #fit bn model to training Data 
+  modelFit = bnlearn::bn.fit(x = DAGraph.bnObject , data = trainData ,
+                             method = Method)
+
+  # The main data structure in gRain is the grain class, which stores a fitted Bayesian network as a list of 
+  # conditional probability tables (much like bnlearn's bn.fit objects) and makes it possible for setEvidence() 
+  # and querygrain() to perform posterior inference via belief propagation.  #via docs 
+  
+  # #converting to grain object and compiling
+  compiled_Grain = gRbase::compile(object = bnlearn::as.grain(modelFit))
+  #compiled_Grain = bnlearn::as.grain(modelFit)
+  
+  
+  #fecth index of predNode in order to remove that while making predictions 
+  
+  
+  if(markovB == FALSE)
+    {
+      indx = which(colnames(testData) == predNode)
+      nodesName = colnames(testData[-indx])
+    }else{
+      nodesName = as.vector(markovObj)
+    }
+  
+  prediction = numeric(nrow(testData))
+   
+  #Added to see changing probabilites such that we can validate confusion matrix 
+  #dfPredTest = data.frame(matrix(data = NA , ncol = 2 , nrow = nrow(testData)))
+  
+  
+  for(i in 1:nrow(testData))
+  {
+  
+    #In setEvidence function 
+    #nodes : A vector of nodes; those nodes for which the (conditional) distribution is requested.
+    #states : A vector of states (of the nodes given by 'nodes')
+    
+    #fetching ith row of data set to predicted without target  
+    #extending logic for markov blanket case model 
+    
+    if(markovB == FALSE){
+      testDataRow.State = as.vector(unname(unlist(testData[i, -indx])))
+      
+    }else{
+      testDataRow.State = as.vector(unname(unlist(testData[i, nodesName])))
+    }
+    
+    # if(i == 1)
+    #   print(testDataRow.State)
+    
+    Evidence_Grain = gRain::setEvidence(object = compiled_Grain , 
+                                        nodes = nodesName , 
+                                        states = testDataRow.State  
+                                        )
+    
+    queryGrain = querygrain(object = Evidence_Grain,
+                            #object = compiled_Grain , evidence = Evidence_Grain ,
+                             nodes = predNode , 
+                            #type = "joint"
+                            type = "marginal" 
+                            )
+    
+    qG = as.vector(unname(unlist(queryGrain)))
+    
+    #qG[1] = No and qG[2] = Yes
+    #Added for visual validation of result @removed from final result
+    #dfPredTest[i,] = qG
+    
+    prediction[i] = ifelse(qG[2] > qG[1]  ,  "yes" , "no")
+
+  }#for
+  
+  #confusion matrix
+  confusionMatrix = prop.table(table(test$S , prediction))
+  
+  #return(list("Cmat" = confusionMatrix , "df" = dfPredTest))
+  return(confusionMatrix)
+  
+}#fnPredict
+  
+```
+
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+#plot both Learned and True Graph
+#creating DAG
+initiate = bnlearn::empty.graph(nodes = c("D" , "T", "L", "B", "A",  "X", "E" , "S"))
+initiate = bnlearn::set.arc(initiate, from = "T" , to = "D" )
+bn.hc = bnlearn::hc(asia , score = "aic" , restart = 10 , start = initiate )
+
+#True
+dag.True  = bnlearn::model2network(string = "[A][S][T|A][L|S][B|S][D|B:E][E|T:L][X|E]")
+
+
+par(mfrow = c(1,2))
+bnlearn::graphviz.plot(bn.hc2, main = "Learned Asia Data BN" 
+                       #,  layout = "neato",
+                       ,highlight = list(nodes = "S" ,  col = "tomato", 
+                                         fill = "orange") )
+bnlearn::graphviz.plot(dag.True, main = "True Asia Data BN" 
+                       #,  layout = "neato",
+                       ,highlight = list(nodes = "S" ,  col = "tomato", 
+                                         fill = "orange") )
+
+
+
+```
+
+
+```{r, echo=FALSE , message=FALSE}
+
+asiaData = bnlearn::asia
+
+#Fetching 80% of Data 
+n = dim(asiaData)[1]
+suppressWarnings(RNGversion("3.5.9"))
+set.seed(12345)
+id = sample(1:n , floor(n*0.8))
+#id = seq(1 , 4000)
+train = asiaData[id,]
+test = asiaData[-id , ]
+
+
+customModel = fnPredict(trainData = train , testData = test , DAGraph.bnObject = bn.hc2 , predNode = "S" , Method = "bayes")
+cat("\n")
+cat("Confusion Matrix for Learned")
+cat("\n")
+customModel
+cat("\n")
+
+
+trueModel = fnPredict(trainData = train , testData = test , DAGraph.bnObject = dag.True , predNode = "S" , Method = "bayes")
+cat("\n")
+cat("Confusion Matrix for True DAG")
+cat("\n")
+trueModel
+cat("\n")
+```
+
+
+***Question 3***
+
+The Markov blanket of a node Xi, the set of nodes that completely separates Xi from the rest of the graph. Generally speaking, it is the
+set of nodes that includes all the knowledge needed to do inference on Xi, from estimation to hypothesis testing to prediction: the parents of
+Xi, the children of Xi, and those children’s other parents. 
+
+Ref : Doc 
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+#calculating MarkovBlanket of S 
+bn.mb = mb(bn.hc , node = "S")
+
+MarkovBNPred = fnPredict(trainData = train , testData = test , DAGraph.bnObject = bn.hc 
+                 , predNode = "S" , Method = "mle" , markovB = TRUE , 
+                 markovObj = bn.mb)
+
+cat("Confusion Matrix for Markov Blanket of S")
+cat("\n")
+MarkovBNPred
+cat("\n")
+  
+  
+
+```
+
+
+***Question 4***
+
+Naive Bayes Assumption : In Naive Bayes, we use Bayes Theorem with strong Naive assumption we consider independence between features. 
+Since here we have features namely "D" , "T", "L", "B", "A",  "X", "E" while target is "S", we will assume all features are independent
+of each other. 
+
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+NaiveBayesBN = bnlearn::empty.graph(nodes = c("D" , "T", "L", "B", "A",  "X", "E" , "S"))
+NaiveBayesBN = bnlearn::set.arc(NaiveBayesBN, from = "S" , to = "D" )
+NaiveBayesBN = bnlearn::set.arc(NaiveBayesBN, from = "S" , to = "T" )
+NaiveBayesBN = bnlearn::set.arc(NaiveBayesBN, from = "S" , to = "L" )
+NaiveBayesBN = bnlearn::set.arc(NaiveBayesBN, from = "S" , to = "B" )
+NaiveBayesBN = bnlearn::set.arc(NaiveBayesBN, from = "S" , to = "A" )
+NaiveBayesBN = bnlearn::set.arc(NaiveBayesBN, from = "S" , to = "X" )
+NaiveBayesBN = bnlearn::set.arc(NaiveBayesBN, from = "S" , to = "E" )
+
+bnlearn::graphviz.plot(NaiveBayesBN, main = "Naive Bayes BN" 
+                       ,highlight = list(nodes = "S" ,  col = "tomato", 
+                                        fill = "orange") )
+
+```
+
+
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+NaiveBayesBNPred = fnPredict(trainData = train , testData = test , DAGraph.bnObject = NaiveBayesBN 
+                 , predNode = "S" , Method = "mle" , markovB = FALSE  )
+
+cat("Confusion Matrix for Naive Bayes BN for S")
+cat("\n")
+NaiveBayesBNPred
+cat("\n")
+
+
+```
+
+***Question 5***
+
+Written in Final File to be Submitted. 
+
+
+```{r, echo=FALSE, warning=FALSE , message=FALSE}
+
+```
+
+
+
+
+
+**Appendix**
+```{r, ref.label = knitr::all_labels(), echo = TRUE, eval = FALSE}
+```
+
+

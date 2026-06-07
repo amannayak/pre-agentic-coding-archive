@@ -1,0 +1,297 @@
+---
+title: "Exam2018"
+author: "Aman Kumar Nayak"
+date: "10/24/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Question 1 
+
+```{r, echo=TRUE, warning=FALSE , message=FALSE}
+
+library(bnlearn)
+library(Rgraphviz)
+set.seed(567)
+data("asia")
+
+ind <- sample(1:5000, 4000)
+tr <- asia[ind,]
+te <- asia[-ind,]
+
+
+#Use Naive Bayes classifier 
+dag.Naive = bnlearn::model2network(string = "[D|S][T|S][L|S][B|S][A|S][X|S][E|S][S]")
+#naive bayes diagram 
+graphviz.plot(dag.Naive , main = "Naive Bayes" , 
+                highlight = list(nodes = "S" , col = "tomato",
+                fill = "orange") )
+
+```
+
+
+```{r, echo=TRUE, warning=FALSE , message=FALSE}
+
+fnPredict = function(trainData , testData , DAGraph.bnObject , predNode = "S")
+  {
+  
+  #fit bn model to training Data 
+  modelFit = bnlearn::bn.fit(x = DAGraph.bnObject , data = trainData ,
+                             method = "bayes")
+
+  compiled_Grain = gRbase::compile(object = bnlearn::as.grain(modelFit))
+
+  indx = which(colnames(testData) == predNode)
+  nodesName = colnames(testData[-indx])
+
+  prediction = numeric(nrow(testData))
+   
+  for(i in 1:nrow(testData))
+  {
+  
+    #In setEvidence function 
+    #nodes : A vector of nodes; those nodes for which the (conditional) distribution is requested.
+    #states : A vector of states (of the nodes given by 'nodes')
+    
+    #fetching ith row of data set to predicted without target  
+    #extending logic for markov blanket case model 
+    
+    testDataRow.State = as.vector(unname(unlist(testData[i, -indx])))
+    Evidence_Grain = gRain::setEvidence(object = compiled_Grain , 
+                                        nodes = nodesName , 
+                                        states = testDataRow.State  
+                                        )
+    
+    queryGrain = querygrain(object = Evidence_Grain,
+                            #object = compiled_Grain , evidence = Evidence_Grain ,
+                             nodes = predNode , 
+                             type = "marginal" 
+                            )
+    
+    qG = as.vector(unname(unlist(queryGrain)))
+    
+    
+    prediction[i] = ifelse(qG[2] > qG[1]  ,  "yes" , "no")
+
+  }#for
+  
+  #confusion matrix
+  confusionMatrix = prop.table(table(testData$S , prediction))
+  
+  Accuracy = sum(diag(confusionMatrix)) / sum(confusionMatrix)
+  
+  return(Accuracy)
+        
+  
+}#fnPredict
+
+
+
+```
+
+
+```{r, echo=TRUE, warning=FALSE , message=FALSE}
+
+nDataPoints = c(10,20,50,100,1000,2000,3000,4000)
+
+accuracy = matrix(rep(0 , length(nDataPoints)), 
+                  nrow = length(nDataPoints) , ncol = 2)
+colnames(accuracy) = c("Data Rows" , "Accuracy")
+
+indx = 1 
+
+for(i in nDataPoints){
+  accuracy[indx , 1] = i
+  accuracy[indx , 2] = fnPredict(trainData = tr[0:i,] , testData = te , 
+                                 DAGraph.bnObject = dag.Naive , predNode = "S")
+  indx = indx + 1
+  }
+
+accuracy
+```
+
+
+#Reverse Naive Bayes 
+
+```{r, echo=TRUE, warning=FALSE , message=FALSE}
+
+#Use Naive Bayes classifier 
+Reverse.NaiveBayes = bnlearn::empty.graph(nodes = c("D" , "T", "L", "B", "A",  "X", "E" , "S"))
+Reverse.NaiveBayes = bnlearn::set.arc(Reverse.NaiveBayes, from = "D" , to = "S" )
+Reverse.NaiveBayes = bnlearn::set.arc(Reverse.NaiveBayes, from = "T" , to = "S" )
+Reverse.NaiveBayes = bnlearn::set.arc(Reverse.NaiveBayes, from = "L" , to = "S" )
+Reverse.NaiveBayes = bnlearn::set.arc(Reverse.NaiveBayes, from = "B" , to = "S" )
+Reverse.NaiveBayes = bnlearn::set.arc(Reverse.NaiveBayes, from = "A" , to = "S" )
+Reverse.NaiveBayes = bnlearn::set.arc(Reverse.NaiveBayes, from = "X" , to = "S" )
+Reverse.NaiveBayes = bnlearn::set.arc(Reverse.NaiveBayes, from = "E" , to = "S" )
+
+#naive bayes diagram 
+graphviz.plot(Reverse.NaiveBayes , main = "Reverse Naive Bayes" , 
+                highlight = list(nodes = "S" , col = "tomato",
+                fill = "orange") )
+
+
+```
+
+
+
+```{r, echo=TRUE, warning=FALSE , message=FALSE}
+
+nDataPoints = c(10,20,50,100,1000,2000,3000,4000)
+
+accuracy = matrix(rep(0 , length(nDataPoints)), 
+                  nrow = length(nDataPoints) , ncol = 2)
+colnames(accuracy) = c("Data Rows" , "Accuracy")
+
+indx = 1 
+
+for(i in nDataPoints){
+  accuracy[indx , 1] = i
+  accuracy[indx , 2] = fnPredict(trainData = tr[0:i,] , testData = te , 
+                                 DAGraph.bnObject = Reverse.NaiveBayes , predNode = "S")
+  indx = indx + 1
+  }
+
+accuracy
+
+
+
+```
+
+
+
+```{r, echo=TRUE, warning=FALSE , message=FALSE}
+#Plot structure of reverse Naive Bayes and Naive Bayes together
+
+
+par(mfrow=c(1,2))
+
+graphviz.plot(dag.Naive , main = "Naive Bayes" , 
+                highlight = list(nodes = "S" , col = "tomato",
+                fill = "orange") )
+
+graphviz.plot(Reverse.NaiveBayes , main = "Reverse Naive Bayes" , 
+                highlight = list(nodes = "S" , col = "tomato",
+                fill = "orange") )
+
+```
+
+
+Now NB assumes conditional independence between features or here other nodes where as later is not conditionally independent. We can see that now in order to find S|class Variables, since Naive Assume conditional independence between parameter we can  
+
+```{r, echo=TRUE, warning=FALSE , message=FALSE}
+
+```
+
+
+#Question 4
+
+```{r, echo=TRUE, warning=FALSE , message=FALSE}
+
+# Matern32  kernel
+k <- function(sigmaf = 1, ell = 1)  
+{   
+	rval <- function(x, y = NULL) 
+	{	r = sqrt(crossprod(x-y))
+		 return(sigmaf^2*(1+sqrt(3)*r/ell)*exp(-sqrt(3)*r/ell))   
+	}   
+	class(rval) <- "kernel"   
+	return(rval) 
+} 
+
+sigma2f = 1
+ell = 0.5
+zGrid <- seq(0.01, 1, by = 0.01)
+
+count = 0
+covs = rep(0,length(zGrid))
+for (z in zGrid){
+  count = count + 1
+  covs[count] <- sigma2f*k(sigmaf = 1, ell = ell)(0,z)
+}
+
+plot(zGrid, covs, type = "l", xlab = "ell")
+
+```
+The graph plots Cov(f(0),f(z)), the correlation between two FUNCTION VALUES, as a function of the distance between two inputs (0 and z). As expected the correlation between two points on f decreases as the distance increases. The fact that points of f are dependent, as given by the covariance in the plot, makes the curves smooth. Nearby inputs will have nearby outputs when the correlation is large.
+
+
+
+```{r, echo=TRUE, warning=FALSE , message=FALSE}
+sigma2f = 0.5
+ell = 0.5
+zGrid <- seq(0.01, 1, by = 0.01)
+count = 0
+covs = rep(0,length(zGrid))
+for (z in zGrid){
+  count = count + 1
+  covs[count] <- sigma2f*k(sigmaf = 1, ell = ell)(0,z)
+}
+plot(zGrid, covs, type = "l", xlab = "ell")
+```
+
+Changing sigma2f will have not effect on the relative covariance between points on the curve, i.e. will not affect the smoothness. But lowering sigma2f makes the whole covariance curve lower. This means that the variance k(0,0) is lower and has the effect of giving a probability distribution over curves which is tighter (lower variance) around the mean function of the GP. This means that simulated curves from the GP will be less variable.
+
+
+
+```{r, echo=TRUE, warning=FALSE , message=FALSE}
+library(kernlab)
+LidatData = read.delim("C:/Users/aaman/Documents/AML/Advance-Machine-Learning/Gaussian Process Regression and Classification/LidarData.txt" , sep = "")
+
+
+sigmaNoise = 0.05
+x = LidatData$Distance
+y = LidatData$LogRatio
+kernelFunc <- k(sigmaf = 1, ell = 1)
+
+plot(x, y, main = "", cex = 0.5)
+
+
+GPfit <- gausspr(x, y, kernel = kernelFunc, var = sigmaNoise^2)
+
+
+
+```
+
+
+
+
+```{r, echo=TRUE, warning=FALSE , message=FALSE}
+xs = seq(min(x),max(x), length.out = 100)
+meanPred <- predict(GPfit, xs) # Predicting the training data. To plot the fit.
+plot(x, y, main = "", cex = 0.5)
+lines(xs, meanPred, col="blue", lwd = 2)
+```
+
+
+
+```{r, echo=TRUE, warning=FALSE , message=FALSE}
+
+```
+
+
+
+```{r, echo=TRUE, warning=FALSE , message=FALSE}
+
+```
+
+
+
+```{r, echo=TRUE, warning=FALSE , message=FALSE}
+
+```
+
+
+
+
+```{r, echo=TRUE, warning=FALSE , message=FALSE}
+
+```
+
+
+**Appendix**
+```{r, ref.label = knitr::all_labels(), echo = TRUE, eval = FALSE}
+```

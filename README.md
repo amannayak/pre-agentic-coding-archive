@@ -1,80 +1,65 @@
 # Pre-Agentic Coding Archive
 
-This repository preserves my public software, data science, and machine learning work from before my current focus on AI-assisted and agentic coding workflows.
+An organized archive of my earlier work in machine learning, data science, statistics, and programming — consolidated from 11 separate repositories into one place.
 
-The goal is not to present this as my current engineering style. It is an organized archive of foundations: Python, R, machine learning, Bayesian modeling, time series analysis, data mining, deep learning, APIs, and Shiny dashboards.
+This is not a showcase of my current engineering style. It is a preserved record of foundations built before I shifted focus to agentic and AI-assisted software engineering.
 
-Most of my current professional/job-related work lives in GitLab or private repositories. This GitHub account is therefore curated as a public portfolio rather than a metrics dashboard.
+## Contents
 
-## Why this archive exists
-
-Previously, these projects lived as separate older repositories. Consolidating them here makes the GitHub profile cleaner while still preserving visible evidence of technical learning and breadth.
-
-Use this archive as historical context for:
-
-- ML/data science foundations
-- R and Python coursework/projects
-- statistics and modeling practice
-- API/package experiments
-- dashboard/application experiments
+| Area | Projects |
+|---|---|
+| **Machine learning** | Fake news classifier (NLP), classical ML in R, advanced ML, deep learning labs |
+| **Data science & statistics** | Bayesian modeling, time series analysis, advanced data mining |
+| **R programming** | Advanced R, Swedish Parliament API package, Shiny dashboard |
+| **Python coursework** | Labs covering CNNs, DNNs, RNNs, and general Python |
 
 ## Repository structure
 
-```txt
+```
 pre-agentic-coding-archive/
   machine-learning/
-    fake-news-classifier/
-    machine-learning-r/
-    advanced-machine-learning/
-    deep-learning/
+    fake-news-classifier/         # LSTM/NLP classifier, Kaggle-style pipeline
+    machine-learning-r/           # Classical ML: SVM, regression, trees, PCA
+    advanced-machine-learning/    # Gaussian processes, HMMs, graphical models, RL
+    deep-learning/                # CNN, DNN, RNN labs
 
   data-science-statistics/
-    advanced-data-mining/
-    bayesian-modeling/
+    advanced-data-mining/         # Clustering, association analysis
+    bayesian-modeling/            # Bayesian inference tasks
     time-series-and-sequence-analysis/
 
   r-programming/
-    advanced-r-programming/
-    swedish-parliament-api/
+    advanced-r-programming/       # R packages, algorithms, spam classifier
+    swedish-parliament-api/       # R package wrapping the Riksdag open data API
     shiny-dashboard-swedish-parliament/
 
   python-coursework/
-    python-labs/
-
-  docs/
-    RESUME_AND_PROFILE_PLAN.md
+    python-labs/                  # Progressive lab series
 ```
 
-## Archived projects
+## Archived repositories
 
-| Original repo | New location | Area |
+| Original repo | Location | Description |
 |---|---|---|
-| `Fake_News_Classifier` | `machine-learning/fake-news-classifier` | Machine learning / NLP |
-| `Machine-Learning` | `machine-learning/machine-learning-r` | Classical ML in R |
-| `Advance-Machine-Learning` | `machine-learning/advanced-machine-learning` | Advanced ML |
-| `DeepLearning` | `machine-learning/deep-learning` | Deep learning labs |
-| `Advance-Data-Mining` | `data-science-statistics/advanced-data-mining` | Data mining |
-| `Bayesian-Modeling` | `data-science-statistics/bayesian-modeling` | Bayesian statistics |
-| `Time-Series-and-Sequence-Analysis` | `data-science-statistics/time-series-and-sequence-analysis` | Time series |
-| `Python` | `python-coursework/python-labs` | Python coursework |
-| `Advance-R-Progaming-` | `r-programming/advanced-r-programming` | R programming |
-| `swedishParlimentAPI` | `r-programming/swedish-parliament-api` | R package/API work |
-| `ShinyDashboardSwedishParliament` | `r-programming/shiny-dashboard-swedish-parliament` | Shiny dashboard |
-
-## Resume note
-
-The resume is intentionally **not buried in this archive**. It should stay as a standalone public repo/source of truth and be linked from the GitHub profile and personal site.
-
-See [`docs/RESUME_AND_PROFILE_PLAN.md`](docs/RESUME_AND_PROFILE_PLAN.md) for the suggested profile and resume strategy.
+| `Fake_News_Classifier` | `machine-learning/fake-news-classifier` | NLP pipeline with LSTM and classical models |
+| `Machine-Learning` | `machine-learning/machine-learning-r` | SVM, regression, trees, PCA, ICA in R |
+| `Advance-Machine-Learning` | `machine-learning/advanced-machine-learning` | Gaussian processes, HMMs, graphical models, RL |
+| `DeepLearning` | `machine-learning/deep-learning` | CNN, DNN, RNN lab series |
+| `Advance-Data-Mining` | `data-science-statistics/advanced-data-mining` | Clustering and association analysis |
+| `Bayesian-Modeling` | `data-science-statistics/bayesian-modeling` | Bayesian inference tasks |
+| `Time-Series-and-Sequence-Analysis` | `data-science-statistics/time-series-and-sequence-analysis` | Time series modeling |
+| `Python` | `python-coursework/python-labs` | Python lab series |
+| `Advance-R-Progaming-` | `r-programming/advanced-r-programming` | R algorithms, packages, and ML |
+| `swedishParlimentAPI` | `r-programming/swedish-parliament-api` | R package for Riksdag open data |
+| `ShinyDashboardSwedishParliament` | `r-programming/shiny-dashboard-swedish-parliament` | Interactive Shiny dashboard |
 
 ## Current focus
 
-My current public work is moving toward:
+My current work has shifted toward:
 
 - AI-assisted software engineering
-- agentic coding workflows
-- developer tooling and automation
-- applied AI product experiments
-- mobile/software tooling
+- Agentic coding workflows and tooling
+- Developer automation and applied AI systems
+- Mobile and software tooling
 
-This archive represents the foundation before that transition.
+See my [GitHub profile](https://github.com/amannayak) for active projects.
